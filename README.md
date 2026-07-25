@@ -148,27 +148,17 @@ Progress: [█████████████░░░░░░░░░░
 ```
 learning-journey/
 │
-├── 01-html/
-├── 02-css/
-├── 03-tailwind/
-├── 04-javascript/
-├── 05-typescript/
-├── 06-react/
-├── 07-nodejs/
-├── 08-express/
-├── 09-mongodb/
-├── 10-mongoose/
-├── 11-git-github/          👈 current focus
-├── 12-postgresql/
-├── 13-prisma/
-├── 14-nextjs/
-├── 15-nestjs/
-├── 16-docker/
-├── 17-deployment/
-├── 18-ci-cd/
-├── 19-aws/
-├── 20-testing-jest/
-├── 21-testing-playwright/
+├── 01-git-github/          👈 current focus
+├── 02-postgresql/
+├── 03-prisma/
+├── 04-nextjs/
+├── 05-nestjs/
+├── 06-docker/
+├── 07-deployment/
+├── 08-ci-cd/
+├── 09-aws/
+├── 10-testing-jest/
+├── 11-testing-playwright/
 │
 └── README.md
 ```
@@ -215,7 +205,7 @@ in-progress code, comments to self, and iterative improvement.
 
 ## 💡 Learning Philosophy
 
-> **Consistency beats intensity.**
+> **Discipline beats intensity.**
 
 A few principles guide how I approach this journey:
 
