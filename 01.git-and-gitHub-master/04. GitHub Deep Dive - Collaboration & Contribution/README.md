@@ -250,3 +250,23 @@ OR go to a specific repo → Settings → Collaborators and teams
 7. Click "Add <username> to this repository"
 8. GitHub sends them an invitation
 
+
+## 👥 54. Adding Organization Members
+
+> An **Organization Member** is someone who fully belongs to
+> your organization — they appear in your People list and can
+> be organized into Teams for easier access management.
+> Analogy: Like hiring a full-time employee and giving them
+> a company badge, instead of a one-time visitor pass.
+
+---
+
+### Steps to Add an Organization Member
+Go to your Organization page
+Click "People"
+Click "Invite member"
+Search their GitHub username or email
+Choose their role: "Member" or "Owner"
+(Optional) Assign them to a Team right away
+Click "Send invitation"
+
