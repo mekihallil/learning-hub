@@ -308,3 +308,37 @@ Repo C → Add Alice (Write)
 Team "Developers" → Write access to Repo A, B, C
 Add Alice to "Developers" team
 ```
+
+
+```
+## 🧩 56. Introducing Teams
+
+> A **Team** in a GitHub Organization is a group of members
+> that share the same repository permissions — set once,
+> applied to everyone in that team.
+> Analogy: Like organizing employees into departments
+> (Marketing, Engineering, Design) — each department gets
+> access to the tools/files relevant to their job, all at once.
+
+---
+
+### Why Teams Matter
+**What it does:** Groups organization members and assigns repo permissions to the whole group at once.
+**Why it is used:** Saves time, reduces mistakes, and makes it easy to see who has access to what by looking at team membership.
+**When to use:** As soon as your organization has more than a couple of repos or more than a couple of people.
+
+---
+
+### Steps to Create a Team
+```
+
+1. Go to your Organization page
+2. Click "Teams"
+3. Click "New team"
+4. Enter a Team name (e.g., "Backend Developers")
+5. (Optional) Add a description
+6. Choose a parent team if this is a sub-team (optional)
+7. Click "Create team"
+8. Add members to the team
+9. Go to a repository → Settings → Collaborators and teams → Add the team
+10. Choose the permission level (Read, Write, Maintain, Admin)
