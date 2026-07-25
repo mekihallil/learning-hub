@@ -270,3 +270,41 @@ Choose their role: "Member" or "Owner"
 (Optional) Assign them to a Team right away
 Click "Send invitation"
 
+## ⚠️ 55. Failing to Manage Access for Individual Repositories
+
+> A common and dangerous mistake: giving people access
+> repo-by-repo instead of using Teams — it becomes messy,
+> hard to track, and easy to forget to remove access later.
+> Analogy: Like handing out individual house keys to 20 people
+> instead of using one master key system — eventually,
+> you lose track of who has what.
+
+---
+
+### Common Access Management Mistakes
+
+| Mistake | Why it's a problem |
+|---|---|
+| Adding people directly to repos instead of Teams | Hard to track who has access to what, across many repos |
+| Giving Admin access "just in case" | Increases risk if that account is compromised |
+| Forgetting to remove access when someone leaves | Ex-employees/contractors may retain access indefinitely |
+| Not reviewing permissions periodically | Old, unnecessary access builds up silently over time |
+| Using one shared account for multiple people | No accountability — you can't tell who did what |
+
+---
+
+### The Better Way — Use Teams Instead
+**What it does:** Groups people so permissions are given ONCE to the team, not individually to each repo.
+**Why it is used:** Easier to manage — add/remove someone from a Team, and their repo access updates automatically.
+**When to use:** As soon as you have more than 2-3 repositories or more than a couple of people.
+
+```bash
+# Instead of this (repeated for every repo, every person):
+Repo A → Add Alice (Write)
+Repo B → Add Alice (Write)
+Repo C → Add Alice (Write)
+
+# Do this (once):
+Team "Developers" → Write access to Repo A, B, C
+Add Alice to "Developers" team
+```
