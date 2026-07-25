@@ -218,3 +218,35 @@ OR go to a specific repo → Settings → Collaborators and teams
 * Click "Add people" or adjust an existing member's role
 * Choose the permission level (Read, Triage, Write, Maintain, Admin)
 * Save changes
+
+
+```markdown
+## 🧑‍💼 53. Adding Outside Collaborators
+
+> An **Outside Collaborator** is someone who is NOT a member
+> of your organization, but is given access to ONE specific
+> repository — nothing more.
+> Analogy: Like giving a delivery person a key card that only
+> opens the lobby, not the whole office building.
+
+---
+
+### Why Use Outside Collaborators
+**What it does:** Grants repo-specific access to someone outside your organization.
+**Why it is used:** For freelancers, contractors, or external partners who need to contribute to ONE project only — without seeing your other private repos.
+**When to use:** Hiring a freelance developer, working with an external agency, or a short-term contributor.
+
+---
+
+### Steps to Add an Outside Collaborator
+```
+
+1. Go to the specific repository (inside your organization)
+2. Click "Settings"
+3. Click "Collaborators and teams"
+4. Click "Add people"
+5. Search their GitHub username or email
+6. Choose a permission level (Read, Triage, Write, Maintain, Admin)
+7. Click "Add <username> to this repository"
+8. GitHub sends them an invitation
+
