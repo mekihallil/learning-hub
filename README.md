@@ -248,7 +248,7 @@ A few principles guide how I approach this journey:
 | 8 | Express.js | Backend | ✅ Completed |
 | 9 | MongoDB | Database | ✅ Completed |
 | 10 | Mongoose | Database | ✅ Completed |
-| 11 | Git | Tools | 🔄 In Progress |
+| 11 | Git | Tools | ✅ Completed |
 | 12 | GitHub Mastery | Tools | 🔄 In Progress |
 | 13 | Next.js | Framework | ⏳ Planned |
 | 14 | NestJS | Framework | ⏳ Planned |
