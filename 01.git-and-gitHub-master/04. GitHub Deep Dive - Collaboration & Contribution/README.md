@@ -432,3 +432,25 @@ Click "Compare & pull request" (appears automatically after a push)
 Choose the base branch (where changes should go) and compare branch (your changes)
 Write a clear title and description
 Click "Create pull request"
+
+```
+## 🐛 61. Opening & Closing Issues
+
+> An **Issue** is how you track bugs, feature requests, or
+> tasks related to a repository — like a to-do list the whole
+> team (or public) can see and discuss.
+> Analogy: Like a sticky note board where anyone can post
+> a problem or idea, and the team checks it off once it's solved.
+
+---
+
+### Steps to Open an Issue
+```
+
+1. Go to the repository
+2. Click the "Issues" tab
+3. Click "New issue"
+4. Write a clear title (e.g., "Login button not working on mobile")
+5. Add a description — steps to reproduce, screenshots, etc.
+6. (Optional) Add labels, assignees, or a project
+7. Click "Submit new issue"
