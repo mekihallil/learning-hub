@@ -382,3 +382,20 @@ Repo: backend-api
 Backend Team → Write
 QA Team → Read
 DevOps Team → Admin
+
+
+
+## 🍴 58. Understanding Forks & Pull Requests
+
+> A **Fork** creates your OWN copy of someone else's repository
+> under your account — so you can freely experiment without
+> affecting the original.
+> A **Pull Request (PR)** is how you propose your changes be
+> merged back into the original repository.
+> Analogy: Forking is like photocopying someone's document to
+> scribble notes on your own copy. A Pull Request is like
+> handing that copy back and asking, "Can you add my notes
+> to the original?"
+
+
+
