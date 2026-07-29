@@ -540,3 +540,21 @@ Option 2: Create it directly on GitHub
 4. GitHub shows a special message:
 "meki-dev/meki-dev is a ✨ special ✨ repository"
 5. Edit the README — this content appears on your GitHub profile page
+
+
+```
+
+## ⭐ 65. About GitHub Stars
+
+> A **Star** is how users bookmark and show appreciation for
+> a repository on GitHub — similar to a "like" button.
+> Analogy: Like starring an email to save it for later, or
+> giving a restaurant a good review — it signals value to others.
+
+---
+
+### How to Star a Repository
+```
+
+1. Go to the repository
+2. Click the "⭐ Star" button (top right)
