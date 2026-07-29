@@ -414,3 +414,21 @@ DevOps Team → Admin
 2. Click the "Fork" button (top right)
 3. Choose where to fork it (your personal account or an organization)
 4. Click "Create fork"
+
+
+## 🔃 60. Pull Requests in Practice
+
+> A Pull Request (PR) says: "Here are my changes — please
+> review and consider merging them into your branch/repo."
+> Analogy: Like submitting an assignment for a teacher to
+> review before it counts as "done."
+
+---
+
+### Steps to Open a Pull Request
+Push your branch to GitHub (fork or same repo)
+Go to the repository on GitHub
+Click "Compare & pull request" (appears automatically after a push)
+Choose the base branch (where changes should go) and compare branch (your changes)
+Write a clear title and description
+Click "Create pull request"
