@@ -398,4 +398,19 @@ DevOps Team → Admin
 > to the original?"
 
 
+```
+## 🍴 59. Forking a Repository
 
+**What it does:** Creates a full copy of someone else's repository under your own GitHub account.
+**Why it is used:** Lets you make changes freely, since you don't have write access to the original.
+**When to use:** Contributing to open-source projects, or experimenting with someone else's code.
+
+---
+
+### Steps to Fork a Repository
+```
+
+1. Go to the repository you want to fork on GitHub
+2. Click the "Fork" button (top right)
+3. Choose where to fork it (your personal account or an organization)
+4. Click "Create fork"
