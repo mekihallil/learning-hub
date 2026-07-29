@@ -454,3 +454,25 @@ Click "Create pull request"
 5. Add a description — steps to reproduce, screenshots, etc.
 6. (Optional) Add labels, assignees, or a project
 7. Click "Submit new issue"
+
+
+```
+## 📋 62. Working with GitHub Projects
+
+> GitHub Projects is a built-in Kanban-style board to
+> organize Issues and Pull Requests visually — like a
+> to-do list with columns.
+> Analogy: Like a physical whiteboard with sticky notes moving
+> from "To Do" → "In Progress" → "Done."
+
+---
+
+### Steps to Create a GitHub Project
+```
+
+1. Go to your repository or organization
+2. Click the "Projects" tab
+3. Click "New project"
+4. Choose a template (e.g., "Board", "Table", "Roadmap")
+5. Name your project (e.g., "App Launch Roadmap")
+6. Click "Create"
