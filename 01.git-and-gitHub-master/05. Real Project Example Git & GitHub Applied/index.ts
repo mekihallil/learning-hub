@@ -5,3 +5,5 @@ const fName:string = ""
 const birthDay = 20
 
 const result: string = year >= 2026 ? "Updated" : "Outdated";
+
+const country = "Ethiopia"
