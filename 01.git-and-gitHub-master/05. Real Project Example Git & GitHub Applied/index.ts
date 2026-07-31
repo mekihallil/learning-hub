@@ -1,6 +1,6 @@
 const year: number = new Date().getFullYear();
 
-const fName:string = ""
+const fName:string = "meki"
 
 const birthDay = 20
 
