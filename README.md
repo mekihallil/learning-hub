@@ -149,10 +149,10 @@ Progress: [█████████████░░░░░░░░░░
 learning-journey/
 │
 ├── 01-git-github/          👈 current focus
-├── 02-postgresql/
-├── 03-prisma/
-├── 04-nextjs/
-├── 05-nestjs/
+├── 02-nextjs/
+├── 03-nestjs/
+├── 04-postgresql/
+├── 05-prisma/
 ├── 06-docker/
 ├── 07-deployment/
 ├── 08-ci-cd/
@@ -249,8 +249,8 @@ A few principles guide how I approach this journey:
 | 9 | MongoDB | Database | ✅ Completed |
 | 10 | Mongoose | Database | ✅ Completed |
 | 11 | Git | Tools | ✅ Completed |
-| 12 | GitHub Mastery | Tools | 🔄 In Progress |
-| 13 | Next.js | Framework | ⏳ Planned |
+| 12 | GitHub Mastery | Tools | ✅ Completed |
+| 13 | Next.js | Framework | 🔄 In Progress |
 | 14 | NestJS | Framework | ⏳ Planned |
 | 15 | PostgreSQL | Database | ⏳ Planned |
 | 16 | Prisma | Database | ⏳ Planned |
