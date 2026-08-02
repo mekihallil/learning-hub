@@ -87,16 +87,16 @@ current one — not just recognize the syntax.
 organizations, permissions, and real team workflows)
 
 ```
-Progress: [█████████████░░░░░░░░░░░] 10 / 21 topics completed (48%)
+Progress: [██████████████░░░░░░░░░░] 11 / 21 topics completed (49%)
 ```
 
 | Stage | Status |
 |---|---|
 | Front-End Foundations | ✅ Completed |
 | Back-End Foundations | ✅ Completed |
-| Git & GitHub | 🔄 In Progress |
+| Git & GitHub | ✅ Completed  |
 | Databases & ORMs | ⏳ Upcoming |
-| Full-Stack Frameworks | ⏳ Upcoming |
+| Full-Stack Frameworks | 🔄 In Progress |
 | DevOps & Deployment | ⏳ Upcoming |
 | Testing | ⏳ Upcoming |
 
@@ -123,11 +123,11 @@ Progress: [█████████████░░░░░░░░░░
 - [ ] Prisma
 
 ### 🔧 Version Control & Collaboration
-- [ ] Git (in progress)
-- [ ] GitHub Mastery (in progress)
+- [x] Git 
+- [x] GitHub Mastery 
 
 ### 🏗️ Full-Stack Frameworks
-- [ ] Next.js
+- [ ] Next.j(in progress)
 - [ ] NestJS
 
 ### 🚀 DevOps & Deployment
@@ -148,8 +148,8 @@ Progress: [█████████████░░░░░░░░░░
 ```
 learning-journey/
 │
-├── 01-git-github/          👈 current focus
-├── 02-nextjs/
+├── 01-git-github/          
+├── 02-nextjs/              👈 current focus
 ├── 03-nestjs/
 ├── 04-postgresql/
 ├── 05-prisma/
