@@ -180,3 +180,27 @@ import Button from '../../../components/Button';
 import Button from '@/components/Button';
 ```
  
+
+## 🖼️ 7. Adding Images
+
+> Next.js provides a built-in `<Image>` component that automatically
+
+> optimizes images — resizing, compressing, and lazy-loading them.
+
+> Analogy: Like a smart photo frame that automatically resizes and
+
+> compresses any picture you put in it, so it always fits perfectly.
+
+ 
+
+---
+
+### Key Notes
+
+- Local images go in the `public/` folder or are imported directly
+
+- `width` and `height` are required for local images (auto-detected on import)
+
+- Prevents layout shift and serves optimized formats automatically
+
+---
