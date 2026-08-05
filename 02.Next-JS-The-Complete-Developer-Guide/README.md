@@ -204,3 +204,42 @@ import Button from '@/components/Button';
 - Prevents layout shift and serves optimized formats automatically
 
 ---
+
+
+ 
+## 🎨 8. More on the Image Component
+ 
+> Beyond basic usage, the `<Image>` component has extra props for
+> handling remote images, responsive sizing, and performance tuning.
+> Analogy: Like a professional photo editor built into your app —
+> it handles resizing, formats, and loading strategy for you.
+ 
+---
+ 
+### Working with Remote Images
+ 
+```jsx
+import Image from 'next/image';
+ 
+export default function Avatar() {
+  return (
+    <Image
+      src="https://example.com/avatar.jpg"
+      alt="User avatar"
+      width={100}
+      height={100}
+    />
+  );
+}
+```
+
+ 
+### Useful Props
+ 
+| Prop | Purpose |
+|---|---|
+| `fill` | Image fills its parent container (parent needs `position: relative`) |
+| `priority` | Loads the image eagerly (use for above-the-fold images) |
+| `quality` | Adjusts compression quality (1–100) |
+| `sizes` | Helps the browser pick the right image size responsively |
+ 
