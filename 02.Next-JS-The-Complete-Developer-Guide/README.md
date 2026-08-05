@@ -115,3 +115,34 @@ app/
 - Every app **must** have a root `layout.js`
 - Nested layouts apply only to routes inside that folder
 ---
+
+
+## 🏗️ 5. Project Structure Strategy
+ 
+> There's no single "correct" way to organize a Next.js project —
+> but a consistent strategy keeps things scalable as it grows.
+> Analogy: Like organizing a kitchen — utensils, ingredients, and
+> appliances each get their own designated spot so cooking (coding)
+> stays efficient.
+ 
+---
+ 
+### Common Approaches
+ 
+| Strategy | Description |
+|---|---|
+| Colocate everything in `app/` | Components, styles live next to the route that uses them |
+| Separate `components/` folder | Shared, reusable components live outside `app/` |
+| Feature-based folders | Group by feature (e.g., `auth/`, `dashboard/`) instead of file type |
+ 
+### Example Structure
+ 
+```
+src/
+├── app/
+│   ├── ....
+├── components/
+│   ├── header.tsx
+```
+ 
+---
