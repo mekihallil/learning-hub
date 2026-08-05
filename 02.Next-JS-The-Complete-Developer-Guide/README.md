@@ -81,3 +81,21 @@ app/
  
 ---
  
+ ## 🔗 3. Linking Between Pages
+ 
+> Use the built-in `<Link>` component 
+> to navigate between routes — it enables fast, client-side transitions.
+> Analogy: Like teleporting between rooms in the same house instead
+> of walking outside and back in through the front door.
+ 
+---
+ 
+ 
+### Key Notes
+| Feature | Why it matters |
+|---|---|
+| Client-side navigation | No full page reload — faster UX |
+| Automatic prefetching | Next.js preloads linked pages in the background |
+| `href` = route path | Matches the folder structure exactly |
+ 
+---
