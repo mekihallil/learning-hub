@@ -61,13 +61,13 @@ Front-End Foundations
 Back-End Foundations
         │
         ▼
-Version Control Mastery   ← currently here
+Version Control Mastery   
         │
         ▼
 Databases & ORMs
         │
         ▼
-Full-Stack Frameworks
+Full-Stack Frameworks      ← currently here
         │
         ▼
 DevOps & Deployment
