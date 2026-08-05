@@ -71,3 +71,13 @@ app/
 ├── scale/
 |  └── page.js → /scale
 └── page.js → /
+
+## 🗂️ 2. Adding Additional Routes
+ 
+> Every new folder you add inside `app/` (with a `page.js` file)
+> automatically becomes a new route — no config, no router setup.
+> Analogy: Like adding a new drawer to a filing cabinet — the
+> moment it's labeled, people know where to find it.
+ 
+---
+ 
