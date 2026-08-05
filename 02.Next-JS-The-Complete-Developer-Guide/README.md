@@ -99,3 +99,19 @@ app/
 | `href` = route path | Matches the folder structure exactly |
  
 ---
+
+## 🧩 4. Common UI with Layouts
+ 
+> A `layout.js` file wraps every page inside its folder (and
+> subfolders) with shared UI — like a navbar or footer that
+> shouldn't be repeated on every page.
+> Analogy: Like a picture frame — the frame (layout) stays the
+> same while the picture (page content) changes inside it.
+ 
+---
+ 
+ ### Key Notes
+- `{children}` is where the matched page gets rendered
+- Every app **must** have a root `layout.js`
+- Nested layouts apply only to routes inside that folder
+---
