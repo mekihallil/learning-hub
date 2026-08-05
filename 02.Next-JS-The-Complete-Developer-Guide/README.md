@@ -146,3 +146,37 @@ src/
 ```
  
 ---
+
+
+ 
+## 🎯 6. Absolute Path Import Shortcut
+ 
+> Instead of messy relative imports like `../../../components/Button`,
+> Next.js lets you set up an absolute path alias like `@/components/Button`.
+> Analogy: Like using a home address instead of giving turn-by-turn
+> directions from wherever you currently happen to be standing.
+ 
+---
+ 
+### Setup (`jsconfig.json` or `tsconfig.json`)
+ 
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+ 
+### Before vs After
+ 
+```jsx
+// ❌ Relative path (messy, breaks if file moves)
+import Button from '../../../components/Button';
+ 
+// ✅ Absolute path (clean, stable)
+import Button from '@/components/Button';
+```
+ 
