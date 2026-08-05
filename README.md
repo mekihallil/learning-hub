@@ -11,7 +11,7 @@ professional full-stack engineer.
 <br/>
 
 ![Status](https://img.shields.io/badge/status-actively%20learning-brightgreen?style=for-the-badge)
-![Progress](https://img.shields.io/badge/progress-10%2F21%20topics-blue?style=for-the-badge)
+![Progress](https://img.shields.io/badge/progress-11%2F21%20topics-blue?style=for-the-badge)
 ![Focus](https://img.shields.io/badge/current%20focus-Git%20%26%20GitHub-orange?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey?style=for-the-badge)
 
