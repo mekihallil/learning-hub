@@ -1,4 +1,4 @@
-import ScaleImg from "@/public/performance.jpg";
+import ScaleImg from "@/public/scale.jpg";
 import { Hero } from "@/src/app/components/hero";
 export default function ScalePage() {
   return (
