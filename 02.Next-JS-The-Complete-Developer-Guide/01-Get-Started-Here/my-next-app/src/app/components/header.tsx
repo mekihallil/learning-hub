@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export default function header() {
+export const  Header =()=> {
     return (
       <div>
         <Link href="/">Home</Link>
