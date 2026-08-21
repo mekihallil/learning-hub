@@ -50,3 +50,26 @@ export async function createPost(formData) {
   <button type="submit">create</button>
 </form>
 ```
+
+
+## 🗄️ 14. Install Prisma and Create Database Migration
+
+**What it does:** Prisma is an ORM (Object-Relational Mapper) — it lets you talk to your database using TypeScript instead of raw SQL, and tracks schema changes as "migrations."
+**Why it is used:** Manually writing SQL and keeping your database schema in sync across teammates is error-prone. Prisma automates and version-controls it.
+**When to use it:** As soon as your app needs to store real, structured data (users, posts, orders, etc.).
+
+```bash
+npm install prisma --save-dev
+npx prisma init
+```
+**Output:**
+
+✔ Your Prisma schema was created at prisma/schema.prisma
+✔ Environment variable DATABASE_URL added
+
+
+**Define a model, then create a migration:**
+```bash
+npx prisma migrate dev --name init
+```
+**Output:**
