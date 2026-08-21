@@ -11,7 +11,7 @@ export default async function snippetShowPage({
 }: snippetShowPageProps) {
   // Get the ID from params
   const { id } = await params;
-
+  await new Promise((r) => setTimeout(r, 2000));
   //   Fetch the PARTICULAR record from database
   const snippet = await db.snippet.findFirst({
     where: { id: parseInt(id) },
