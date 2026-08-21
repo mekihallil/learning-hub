@@ -14,3 +14,37 @@
 **When to use it:** Understanding this matters every time you decide "should this run on the server or the client?"
 
 **Analogy:** The server is the restaurant's kitchen — customers never see what happens there, they just get the finished plate. The client (browser) is the dining table — it only sees the result.
+
+
+## 🧩 17. Server Components and Client Components
+
+**What it does:** Next.js (App Router) has two types of components:
+- **Server Components** (default) — render on the server, can directly fetch data, never ship JS to the browser.
+- **Client Components** — render in the browser, needed for interactivity (`useState`, `onClick`, `useEffect`).
+
+**Why it is used:** Server Components make your app faster (less JS shipped to the browser) and more secure (data-fetching logic stays hidden). Client Components handle things only the browser can do — clicks, state, animations.
+
+**When to use it:**
+- Use **Server Component** (default, no directive needed) for static content, data display, SEO-heavy pages.
+- Use **Client Component** (`"use client"` at the top) when you need interactivity.
+
+**Analogy:** Server Components are like a printed menu — fixed content, delivered ready-made. Client Components are like the waiter taking your live order — interactive and responsive in the moment.
+
+```tsx
+// app/page.tsx — Server Component (default)
+export default async function Page() {
+  const posts = await db.post.findMany();
+  return <div>{posts.length} posts found</div>;
+}
+```
+
+```tsx
+// components/LikeButton.tsx — Client Component
+"use client";
+import { useState } from "react";
+
+export default function LikeButton() {
+  const [likes, setLikes] = useState(0);
+  return <button onClick={() => setLikes(likes + 1)}>👍 {likes}</button>;
+}
+```
