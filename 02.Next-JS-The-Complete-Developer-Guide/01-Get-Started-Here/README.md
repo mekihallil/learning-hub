@@ -221,7 +221,7 @@ import Button from '@/components/Button';
 ```jsx
 import Image from 'next/image';
  
-export default function Avatar() {
+export default function hero() {
   return (
     <Image
       src="https://example.com/avatar.jpg"
@@ -243,3 +243,13 @@ export default function Avatar() {
 | `quality` | Adjusts compression quality (1–100) |
 | `sizes` | Helps the browser pick the right image size responsively |
  
+
+ ## 🧱 09. Adding a Reusable Presentation Component
+
+**What it does:** Creates a UI piece (like a card, button, or header) as its own component so you can use it in multiple places instead of rewriting the same code.
+**Why it is used:** Keeps your code DRY (Don't Repeat Yourself) — one change updates everywhere it's used.
+**When to use it:** Any time you notice yourself copy-pasting the same chunk of JSX/HTML more than once.
+
+> 🏆 **Golden Rule:** If you use the same JSX block twice, it's time to turn it into a component. Three times, and it's overdue.
+
+---
