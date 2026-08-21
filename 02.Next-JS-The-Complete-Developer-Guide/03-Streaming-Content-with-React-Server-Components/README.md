@@ -83,3 +83,12 @@ export default function Loading() {
 > ⚠️ **Warning:** `loading.tsx` only works when placed in the same route folder as the `page.tsx` it's meant to cover — Next.js uses file-based conventions, not manual wiring.
 
 ---
+
+## 🎨🔗 21. Styling Components and Adding `Link` for Navigation
+
+**What it does:** Combines two everyday component tasks — applying CSS styles to a component, and using Next.js's `<Link>` component to navigate between pages without a full page reload.
+**Why it is used:** Styling makes components look intentional and reusable (instead of a giant global CSS file where everything clashes). `<Link>` makes navigation feel instant instead of forcing a full browser reload like a regular `<a>` tag.
+**When to use it:** Style a component once its logic/structure works. Use `<Link>` any time you're navigating between pages *inside* your own app.
+
+**Analogy:** Styling is giving a LEGO piece its own paint job before snapping it into the build. `<Link>` is like swapping just the plate on the table instead of closing and reopening the whole restaurant to serve the next dish.
+
