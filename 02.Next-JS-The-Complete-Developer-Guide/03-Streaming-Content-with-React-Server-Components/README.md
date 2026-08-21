@@ -5,3 +5,12 @@
 **When to use it:** Any form submission or data mutation (create, update, delete) where you don't need a public reusable API.
 
 **Analogy:** It's like having a direct phone line to the kitchen instead of writing your order on paper, walking it to a waiter, who walks it to the kitchen. Same result, way fewer steps.
+
+
+## 🔬 16. A Deeper Dive into Server
+
+**What it does:** Explains *where* your code actually executes in Next.js — the server (Node.js environment) vs the browser (client environment).
+**Why it is used:** Code that touches databases, secrets, or file systems must run on the server — never send that logic to the browser, or you expose sensitive data.
+**When to use it:** Understanding this matters every time you decide "should this run on the server or the client?"
+
+**Analogy:** The server is the restaurant's kitchen — customers never see what happens there, they just get the finished plate. The client (browser) is the dining table — it only sees the result.
