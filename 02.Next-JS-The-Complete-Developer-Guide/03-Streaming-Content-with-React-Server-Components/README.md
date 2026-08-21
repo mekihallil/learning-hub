@@ -56,3 +56,10 @@ export default function LikeButton() {
 **When to use it:** Any page or component that needs to display data from a database or API on load.
 
 **Analogy:** Instead of ordering food and waiting anxiously at the table (client-side fetching with loading spinners), the food arrives already cooked and plated the moment you sit down.
+
+
+## 🚧 19. Custom Not Found Pages
+
+**What it does:** Lets you create a custom "404 - Page Not Found" screen instead of the default blank Next.js error page.
+**Why it is used:** A branded, helpful 404 page keeps users on your site (with navigation links) instead of them just leaving.
+**When to use it:** Automatically shown when a route doesn't exist, or manually triggered when data isn't found (e.g., a post ID that doesn't exist).
