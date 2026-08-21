@@ -261,3 +261,10 @@ export default function hero() {
 **When to use it:** After your component structure and logic work — style last, function first.
 
 **Analogy:** Structure is the skeleton, style is the clothing. You build the skeleton before you dress it.
+
+
+## 🚀 11. Production Deployment with Vercel
+
+**What it does:** Pushes your Next.js app live to the internet on Vercel's hosting platform.
+**Why it is used:** Vercel is built by the Next.js team, so deployment is nearly zero-config — push code, get a live URL.
+**When to use it:** Once your app works locally and you're ready to show it to the world (or your client/team).
