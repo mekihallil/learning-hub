@@ -63,3 +63,23 @@ export default function LikeButton() {
 **What it does:** Lets you create a custom "404 - Page Not Found" screen instead of the default blank Next.js error page.
 **Why it is used:** A branded, helpful 404 page keeps users on your site (with navigation links) instead of them just leaving.
 **When to use it:** Automatically shown when a route doesn't exist, or manually triggered when data isn't found (e.g., a post ID that doesn't exist).
+
+
+## ⏳ 20. Automatic Loading Spinners
+
+**What it does:** Next.js automatically shows a loading UI while a Server Component's data is being fetched, if you add a `loading.tsx` file next to your `page.tsx`.
+**Why it is used:** Users get instant visual feedback instead of staring at a blank white screen while data loads.
+**When to use it:** Any route where data fetching might take a noticeable moment (database calls, slow APIs).
+
+**Analogy:** It's the "please wait, your order is being prepared" sign — Next.js shows it automatically, you don't have to build the logic yourself.
+
+```tsx
+export default function Loading() {
+  return <p>Loading posts...</p>;
+}
+```
+**Output:** While `app/snippets/page.tsx` is fetching data, Next.js instantly shows the `Loading posts...` message, then swaps it for the real content once ready — no extra code required in the page itself.
+
+> ⚠️ **Warning:** `loading.tsx` only works when placed in the same route folder as the `page.tsx` it's meant to cover — Next.js uses file-based conventions, not manual wiring.
+
+---
