@@ -253,3 +253,11 @@ export default function hero() {
 > 🏆 **Golden Rule:** If you use the same JSX block twice, it's time to turn it into a component. Three times, and it's overdue.
 
 ---
+
+## 🎨 10. Adding Some Style
+
+**What it does:** Applies visual design (colors, spacing, fonts) to your components — usually with CSS Modules or Tailwind CSS in a Next.js project.
+**Why it is used:** Raw HTML looks like a 1998 webpage. Styling makes it usable and presentable.
+**When to use it:** After your component structure and logic work — style last, function first.
+
+**Analogy:** Structure is the skeleton, style is the clothing. You build the skeleton before you dress it.
