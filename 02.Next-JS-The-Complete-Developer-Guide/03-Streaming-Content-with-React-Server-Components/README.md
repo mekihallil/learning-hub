@@ -48,3 +48,11 @@ export default function LikeButton() {
   return <button onClick={() => setLikes(likes + 1)}>👍 {likes}</button>;
 }
 ```
+
+## 📡 18. Fetching Data with Server Components
+
+**What it does:** Lets you `fetch` or query a database directly inside a Server Component using `async/await` — no `useEffect`, no loading state management needed.
+**Why it is used:** Simplifies data fetching massively compared to older React patterns — the data is ready *before* the page even renders.
+**When to use it:** Any page or component that needs to display data from a database or API on load.
+
+**Analogy:** Instead of ordering food and waiting anxiously at the table (client-side fetching with loading spinners), the food arrives already cooked and plated the moment you sit down.
