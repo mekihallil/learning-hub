@@ -92,3 +92,36 @@ export default function Loading() {
 
 **Analogy:** Styling is giving a LEGO piece its own paint job before snapping it into the build. `<Link>` is like swapping just the plate on the table instead of closing and reopening the whole restaurant to serve the next dish.
 
+
+## 🧩 22. Using a Client Component Inside a Server Component
+
+**What it does:** Shows how to place an interactive Client Component (like a button with state) inside a Server Component (like a page that fetches data) — the two work together instead of being an either/or choice.
+**Why it is used:** Most real pages need both — server-fetched data for speed/SEO, plus a few interactive bits (buttons, forms, editors) for the user. Next.js lets you mix them by importing the Client Component into the Server Component.
+**When to use it:** Any time a page is mostly static/data-driven, but has one small interactive piece (like a like button, dropdown, or editor) embedded in it.
+
+**Analogy:** The Server Component is the printed restaurant menu — fixed, delivered as-is. The Client Component is a little interactive tablet clipped to one corner of the menu where you can actually tap buttons. The menu doesn't become interactive, just that one embedded piece.
+
+```tsx
+"use client";
+
+export default function SnippetEditForm () {
+  return <div>....</div>
+}
+```
+
+```tsx
+
+export default async function edit({ params }) {
+
+  return (
+    <div>
+      <SnippetEditForm />
+    </div>
+  );
+}
+```
+**Output:** The page loads with the post content already rendered server-side (fast, SEO-friendly), and the `LikeButton` becomes clickable/interactive once it hydrates in the browser — no `"use client"` needed on the page itself.
+
+> 🏆 **Golden Rule:** You can import a Client Component into a Server Component, but **not the other way around** — a Server Component can't be imported directly into a Client Component (pass it as `children`/props instead if you need that).
+
+---
