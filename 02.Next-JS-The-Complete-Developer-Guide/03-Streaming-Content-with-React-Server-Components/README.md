@@ -125,3 +125,39 @@ export default async function edit({ params }) {
 > 🏆 **Golden Rule:** You can import a Client Component into a Server Component, but **not the other way around** — a Server Component can't be imported directly into a Client Component (pass it as `children`/props instead if you need that).
 
 ---
+
+
+## 🖊️ 23. Adding Monaco Editor
+
+**What it does:** Embeds the Monaco Editor — the same code editor that powers VS Code — directly into your app, giving users syntax highlighting, autocomplete, and a real code-editing experience in the browser.
+**Why it is used:** If your app involves writing or displaying code (like a snippets app, playground, or admin tool), a plain `<textarea>` feels clunky. Monaco gives you a professional editing experience with almost no setup.
+**When to use it:** Any feature where users write, paste, or edit code — code snippet tools, live playgrounds, config editors.
+
+**Analogy:** A `<textarea>` is like writing code on a plain notepad. Monaco is handing the user the actual VS Code window, dropped right into your page.
+
+```bash
+npm install @monaco-editor/react
+```
+**Output:**
+
+added 3 packages in 2s
+
+
+Since Monaco relies on browser-only APIs, it **must** be a Client Component:
+
+```tsx
+import Editor from "@monaco-editor/react";
+
+<Editor
+  height="400px"
+  defaultLanguage="javascript"
+  defaultValue={defaultValue}
+  theme="vs-dark"
+/>
+
+```
+```
+**Output:** A full VS Code-style editor renders in the browser with dark theme, syntax highlighting, and line numbers — far better UX than a plain `<textarea>`.
+
+> ⚠️ **Warning:** Monaco Editor doesn't support server-side rendering. If you see hydration errors, load it dynamically with `next/dynamic` and `ssr: false`:
+> 🏆 **Golden Rule:** Any library that touches `window`, the DOM directly, or browser-only APIs needs `"use client"` — and often `next/dynamic` with `ssr: false` on top of that.
