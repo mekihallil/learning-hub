@@ -7,8 +7,11 @@ interface SnippetEditFormProps {
   snippet: Snippet;
 }
 
-export default function snippetEditForm({ snippet }: SnippetEditFormProps) {
+export default function SnippetEditForm({ snippet }: SnippetEditFormProps) {
   const { code } = snippet;
+  const handleEditorChange = (value: string = "") => {
+    console.log(value);
+  };
   return (
     <div>
       <Editor
@@ -17,6 +20,7 @@ export default function snippetEditForm({ snippet }: SnippetEditFormProps) {
         language="javascript"
         defaultValue={code}
         options={{ minimap: { enabled: false } }}
+        onChange={handleEditorChange}
       />
     </div>
   );
