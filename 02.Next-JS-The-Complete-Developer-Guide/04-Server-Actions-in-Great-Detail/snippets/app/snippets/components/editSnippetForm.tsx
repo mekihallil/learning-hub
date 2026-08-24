@@ -3,18 +3,21 @@
 import { Snippet } from "@/generated/prisma/client";
 import { Editor } from "@monaco-editor/react";
 import { useState } from "react";
+import editSnippet from "../action/editSnippet";
 
 interface SnippetEditFormProps {
   snippet: Snippet;
 }
 
 export default function SnippetEditForm({ snippet }: SnippetEditFormProps) {
-  const { code } = snippet;
+  const { id, code } = snippet;
   const [updatedCode, setCode] = useState(code);
   const handleEditorChange = (value: string = "") => {
     setCode(value);
   };
-  console.log(updatedCode);
+  const handleClick = async () => {
+    await editSnippet(id, updatedCode);
+  };
   return (
     <div>
       <Editor
@@ -25,6 +28,9 @@ export default function SnippetEditForm({ snippet }: SnippetEditFormProps) {
         options={{ minimap: { enabled: false } }}
         onChange={handleEditorChange}
       />
+      <div>
+        <button onClick={handleClick}>Save</button>
+      </div>
     </div>
   );
 }
