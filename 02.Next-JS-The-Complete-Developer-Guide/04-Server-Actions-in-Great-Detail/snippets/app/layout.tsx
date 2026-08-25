@@ -24,7 +24,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <div className="container mx-auto px-12">{children}</div>
+        <div className="container mx-auto px-12" cz-shortcut-listen="true">
+          {children}
+        </div>
       </body>
     </html>
   );
