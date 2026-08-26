@@ -29,3 +29,14 @@
 > ⚠️ **Warning:** With `onClick`, you're calling the Server Action directly as a function — make sure it's marked `async` and that you `await` it if you need to know when it finishes (e.g., to show a loading state).
 
 ---
+
+
+## 🖱️ 27. Calling a Server Action from a Client Component
+
+**What it does:** A full working example of triggering a Server Action from a button click, including a loading state while it runs.
+**Why it is used:** Real UI needs feedback — disabling the button, showing "Deleting..." — while the server request is in flight.
+**When to use it:** Any delete/update button where you want to prevent double-clicks and show progress.
+
+
+
+> 🏆 **Golden Rule:** Always give the user feedback (`loading` state, disabled button) during a Server Action call — silent buttons make users think the app is broken and click again, causing duplicate actions. ---
