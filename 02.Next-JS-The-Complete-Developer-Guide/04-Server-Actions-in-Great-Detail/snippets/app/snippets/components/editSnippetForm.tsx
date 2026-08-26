@@ -29,7 +29,12 @@ export default function SnippetEditForm({ snippet }: SnippetEditFormProps) {
         onChange={handleEditorChange}
       />
       <div>
-        <button onClick={handleClick}>Save</button>
+        <button
+          onClick={handleClick}
+          className="border rounded p-2 mt-2 cursor-pointer"
+        >
+          Save
+        </button>
       </div>
     </div>
   );
