@@ -5,3 +5,11 @@
 **When to use it:** Any interactive UI element inside a Client Component that needs to trigger a database change — delete buttons, toggle switches, "like" buttons, etc.
 
 **Analogy:** A `<form action={...}>` is like dropping a request into a mailbox — simple, one-way. Calling a Server Action from a Client Component's `onClick` is like picking up the phone yourself and calling the kitchen directly, whenever you decide to.
+
+
+
+## 📂 25. Server Actions in a Separate File
+
+**What it does:** Keeps all your Server Actions organized in one dedicated file (e.g., `app/actions.ts`) instead of scattering them across page and component files.
+**Why it is used:** Easier to find, reuse, and test. It also keeps your components focused on UI, while actions.ts focuses purely on server logic.
+**When to use it:** Basically always, once you have more than one Server Action — treat it the same way you'd treat a `utils.ts` or `api.ts` file.
