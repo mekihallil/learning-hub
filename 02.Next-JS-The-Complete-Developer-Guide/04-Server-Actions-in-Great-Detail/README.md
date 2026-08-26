@@ -40,3 +40,15 @@
 
 
 > 🏆 **Golden Rule:** Always give the user feedback (`loading` state, disabled button) during a Server Action call — silent buttons make users think the app is broken and click again, causing duplicate actions. ---
+
+
+## 🗑️ 28. Deleting a Record with a Server Action
+
+**What it does:** A Server Action that removes a record from the database, plus refreshing the UI afterward so the deleted item disappears without a manual page reload.
+**Why it is used:** Deletion is one of the most common mutations — combining it with `revalidatePath` keeps the UI in sync with the database automatically.
+**When to use it:** Any "delete" button — removing a post, comment, snippet, or any database record.
+
+
+> ⚠️ **Warning:** If you skip `revalidatePath`, the record is deleted from the database, but your UI will still show the old (now stale) list until a hard refresh — this confuses users into thinking the delete failed.
+
+> 🏆 **Golden Rule:** Every mutation (create, update, delete) should call `revalidatePath` (or `revalidateTag`) for the affected route — deleting data and forgetting to refresh the UI is one of the most common Server Action bugs.
