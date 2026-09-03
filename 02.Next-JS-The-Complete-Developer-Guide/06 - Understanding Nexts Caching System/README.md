@@ -73,3 +73,29 @@ export default async function DashboardPage() {
 > ⚠️ **Warning:** Using `cookies()` or `headers()` anywhere in a route — even buried in a nested component — makes the **entire route** dynamic, not just that component.
 
 ---
+
+## 🎛️ 36. When to Use Each Cache Control
+
+**What it does:** Next.js gives you several knobs to control caching behavior per-fetch or per-route, instead of accepting the automatic default.
+
+| Option | What it does | When to use |
+|---|---|---|
+| `fetch(url, { cache: "force-cache" })` | Always use cached data if available | Data that rarely changes (blog content, docs) |
+| `fetch(url, { cache: "no-store" })` | Never cache, always fetch fresh | Real-time or user-specific data (dashboards, live prices) |
+| `fetch(url, { next: { revalidate: 60 } })` | Cache, but refresh every N seconds | Data that changes occasionally (product listings, news) |
+| `export const dynamic = "force-dynamic"` | Forces the whole route to render fresh every request | Pages that must always be up to date |
+| `export const revalidate = 3600` | Sets a route-level revalidation time (in seconds) | Static-ish pages that should refresh periodically |
+| `revalidatePath("/posts")` | Manually invalidate cache for a specific path, on demand | After a mutation (create/update/delete) — see topic 28 |
+| `revalidateTag("posts")` | Manually invalidate all fetches tagged `"posts"` | When multiple routes share the same underlying data |
+
+**Practical example:**
+```tsx
+// Refresh product data every 5 minutes, not on every single request
+const res = await fetch("https://api.example.com/products", {
+  next: { revalidate: 300 },
+});
+```
+
+> 🏆 **Golden Rule:** Default to `revalidate` (time-based) for content that changes on a schedule, and `revalidatePath`/`revalidateTag` (on-demand) for content that changes because of a user action (like your own Server Actions).
+
+---
