@@ -111,3 +111,16 @@ const res = await fetch("https://api.example.com/products", {
 4. **Are you on Next.js 15+?** Defaults changed — `fetch()` is no-store by default now, so if you're still seeing stale data, it's more likely the Full Route Cache or Router Cache, not the Data Cache.
 
 ---
+
+
+## 🏗️ 38. Enabling Caching with `generateStaticParams`
+
+**What it does:** Tells Next.js, at build time, which dynamic route parameters exist (e.g., which blog post IDs) so it can pre-render each one as a static page instead of rendering them on-demand.
+**Why it is used:** Without it, a dynamic route like `/posts/[id]` renders fresh on every request. With it, Next.js pre-builds `/posts/1`, `/posts/2`, `/posts/3`, etc. as static HTML — much faster for content that doesn't change per-request.
+**When to use it:** Dynamic routes where you know (or can fetch) the full list of valid params ahead of time — blog posts, product pages, documentation pages.
+
+**Output:** `next build` pre-renders `/posts/1`, `/posts/2`, `/posts/3`... as static files, shown in the build output as `● (SSG)` routes instead of `λ (Dynamic)`.
+
+> 🏆 **Golden Rule:** Use `generateStaticParams` for content with a known, finite set of pages (blog posts, products). Skip it for infinite or highly dynamic param spaces (user-generated search results, live filters).
+
+---
