@@ -1,5 +1,6 @@
 "use server";
 import { db } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function createSnippet(
@@ -41,7 +42,7 @@ export async function createSnippet(
       };
     }
   }
-
+  revalidatePath("/");
   // Redirect the user back to the root route
   redirect("/");
 }
