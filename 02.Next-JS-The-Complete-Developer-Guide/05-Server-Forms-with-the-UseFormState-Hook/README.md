@@ -12,3 +12,12 @@
 > 🏆 **Golden Rule:** `useActionState` needs your Server Action to accept `(previousState, formData)` as its arguments (not just `formData`) — see topic 30 below.
 
 ---
+
+## ⚡ 30. `useActionState` in Action
+
+**What it does:** Shows how the Server Action itself must be shaped to work with `useActionState` — it needs an extra `previousState` parameter and must **return** a state object instead of just performing the mutation silently.
+**Why it is used:** `useActionState` needs something to hand back to the component after each submission (errors, success messages) — that's only possible if the action itself returns data.
+**When to use it:** Any Server Action that's paired with `useActionState` on the client.
+
+
+> ⚠️ **Warning:** The function signature order matters — `previousState` **must** come first, `formData` second. Getting the order wrong causes confusing runtime errors.
