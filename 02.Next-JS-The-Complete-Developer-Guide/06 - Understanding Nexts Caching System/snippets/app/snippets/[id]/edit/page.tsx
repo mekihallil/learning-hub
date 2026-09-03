@@ -15,7 +15,7 @@ export default async function snippetEditPage({ params }: snippetPropsId) {
     where: { id },
   });
   if (!snippet) {
-    return notFound;
+    return notFound();
   }
   return (
     <div>
