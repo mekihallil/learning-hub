@@ -3,7 +3,6 @@ import { db } from "../../lib/db";
 import Link from "next/link";
 import { deleteSnippet } from "../action/deleteSnippet";
 
-
 interface snippetShowPageProps {
   params: Promise<{
     id: string;
@@ -24,8 +23,8 @@ export default async function snippetShowPage({
     return notFound();
   }
   const deleteButton = deleteSnippet.bind(null, snippet.id);
-  
-  const {title,code } = snippet
+
+  const { title, code } = snippet;
   return (
     <div>
       <div className="flex m-4 justify-between items-center">
@@ -44,4 +43,14 @@ export default async function snippetShowPage({
       </pre>
     </div>
   );
+}
+
+export async function generateStaticParams() {
+  const snippet = await db.snippet.findMany();
+
+  return snippet.map(({ id }) => {
+    return {
+      id: id.toString(),
+    };
+  });
 }
