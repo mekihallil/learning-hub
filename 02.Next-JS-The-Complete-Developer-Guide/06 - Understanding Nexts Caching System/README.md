@@ -124,3 +124,12 @@ const res = await fetch("https://api.example.com/products", {
 > 🏆 **Golden Rule:** Use `generateStaticParams` for content with a known, finite set of pages (blog posts, products). Skip it for infinite or highly dynamic param spaces (user-generated search results, live filters).
 
 ---
+
+
+
+## 🔀 39. Caching Dynamic Routes
+
+**What it does:** Explains how to still get *some* caching benefit on routes that can't be fully static — using time-based revalidation (`revalidate`) instead of full static generation.
+**Why it is used:** Not every dynamic route can use `generateStaticParams` (e.g., the param list is huge or unknown ahead of time), but you still don't want every single request hitting the database fresh.
+**When to use it:** Dynamic routes with a large or unpredictable set of params, where full pre-rendering isn't practical, but the data doesn't need to be real-time either.
+
