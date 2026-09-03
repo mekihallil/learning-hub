@@ -37,3 +37,39 @@ const posts = await fetch("https://api.example.com/posts");
 | Router Cache | Browser, per-session | Visited route segments for instant back/forward nav |
 
 > 🏆 **Golden Rule:** When debugging stale data, work top-down: check the Router Cache first (client-side), then the Full Route Cache, then the Data Cache — it's usually one of these three, not your actual application logic.
+
+
+## 📍 35. What Makes a Route Static or Dynamic
+
+**What it does:** Next.js automatically decides, at build time, whether each route is **static** (pre-rendered once, reused for every visitor) or **dynamic** (rendered fresh on every request).
+**Why it is used:** Static routes are extremely fast (served like a plain HTML file) but can't show per-request/per-user data. Dynamic routes are flexible but slower since they render on every request.
+**When a route becomes dynamic automatically:**
+- It reads cookies or headers (`cookies()`, `headers()`)
+- It reads search params on the server
+- It uses `fetch()` with `{ cache: "no-store" }` or `{ next: { revalidate: 0 } }`
+- It's marked explicitly with `export const dynamic = "force-dynamic"`
+
+**Analogy:** Static routes are a printed poster — made once, handed out to everyone the same. Dynamic routes are a custom order — made fresh, specifically for the person asking right now.
+
+```tsx
+// Static by default — no dynamic data sources used
+export default async function AboutPage() {
+  return <h1>About Us</h1>;
+}
+```
+
+```tsx
+// Forces dynamic rendering — runs fresh on every request
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const cookieStore = cookies();
+  const userId = cookieStore.get("userId");
+  return <h1>Welcome, user {userId?.value}</h1>;
+}
+```
+**Output:** Running `next build` shows a table telling you which routes are `○ Static` and which are `λ Dynamic` — worth checking after every build.
+
+> ⚠️ **Warning:** Using `cookies()` or `headers()` anywhere in a route — even buried in a nested component — makes the **entire route** dynamic, not just that component.
+
+---
