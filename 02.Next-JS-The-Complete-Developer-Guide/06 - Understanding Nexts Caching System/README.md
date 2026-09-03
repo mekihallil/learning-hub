@@ -99,3 +99,15 @@ const res = await fetch("https://api.example.com/products", {
 > 🏆 **Golden Rule:** Default to `revalidate` (time-based) for content that changes on a schedule, and `revalidatePath`/`revalidateTag` (on-demand) for content that changes because of a user action (like your own Server Actions).
 
 ---
+
+## 🤔 37. Help, My Page Is Showing Old Data!
+
+**What it does:** A troubleshooting checklist for the #1 most common Next.js App Router complaint — stale data after a mutation.
+
+**Step-by-step debugging:**
+1. **Did you call `revalidatePath` or `revalidateTag` in your Server Action?** If not, add it (see topic 28) — this is the most common cause.
+2. **Is the fetch using `cache: "force-cache"` (or the default in Next <15)?** Try `cache: "no-store"` temporarily to confirm caching is the culprit.
+3. **Is it the Router Cache (client-side)?** Hard refresh the browser (Cmd/Ctrl + Shift + R). If the data updates now, it was client-side route caching, not the server.
+4. **Are you on Next.js 15+?** Defaults changed — `fetch()` is no-store by default now, so if you're still seeing stale data, it's more likely the Full Route Cache or Router Cache, not the Data Cache.
+
+---
