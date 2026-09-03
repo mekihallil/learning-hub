@@ -11,7 +11,7 @@ export async function createSnippet(
     // Check the user's inputs and make sure they're valid
     const title = formData.get("title");
     const code = formData.get("code");
-
+// error handling
     if (typeof title !== "string" || title.length < 3) {
       return {
         message: "Title must be longer",
