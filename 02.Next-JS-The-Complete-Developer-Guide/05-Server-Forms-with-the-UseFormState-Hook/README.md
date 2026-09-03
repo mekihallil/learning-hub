@@ -34,3 +34,33 @@
 > 🏆 **Golden Rule:** Never trust client-side validation alone. Always re-validate on the server — the client can be modified, disabled, or bypassed entirely.
 
 ---
+
+
+## 🐛 32. Gotchas Around Error Handling
+
+**What it does:** Covers common mistakes that trip people up when handling errors in Server Actions and `useActionState`.
+**Why it is used:** Error handling looks simple but has a few sharp edges specific to how Next.js Server Actions work — knowing them upfront saves debugging time.
+
+**Common gotchas:**
+
+1. **Thrown errors don't reach `useActionState` cleanly.**
+   If your Server Action `throw`s an error instead of `return`-ing an error object, Next.js shows a generic error boundary/crash screen instead of your friendly inline message.
+```tsx
+   // ❌ Bad — throws, breaks the nice UX
+   if (!title) throw new Error("Title is required");
+
+   // ✅ Good — returns, works with useActionState
+   if (!title) return { error: "Title is required" };
+```
+
+2. **Forgetting `previousState` as the first parameter** breaks the hook silently or causes a type/runtime error — see topic 30.
+
+3. **Not resetting the error state on success** can leave a stale error message on screen even after a successful resubmission, if you don't return `{ error: "" }` explicitly on the success path.
+
+4. **Database errors aren't user-friendly by default.** A raw Prisma error (like a unique constraint violation) will leak technical details if returned directly. Catch it and return a clean message instead:
+
+5. **Silent failures with no `pending` state** — if you don't use `useActionState`'s `pending` value (or your own loading state), users can double-submit forms before the first request finishes.
+
+> ⚠️ **Warning:** Wrap risky database calls in `try/catch` inside every Server Action — an uncaught error crashes the whole route with Next.js's default error screen, which is a jarring experience for real users.
+
+> 🏆 **Golden Rule:** Always `return` structured error objects from Server Actions used with `useActionState` — never `throw` for expected validation failures. Reserve `throw`/error boundaries for truly unexpected crashes.
