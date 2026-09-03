@@ -21,3 +21,16 @@
 
 
 > ⚠️ **Warning:** The function signature order matters — `previousState` **must** come first, `formData` second. Getting the order wrong causes confusing runtime errors.
+
+
+## ✅ 31. Adding Form Validation
+
+**What it does:** Checks form input (on the server, inside the Server Action) before it's allowed to hit the database — rejecting empty, malformed, or unsafe input.
+**Why it is used:** Client-side validation can be bypassed (disabled JS, direct API calls) — server-side validation is the real safety net that actually protects your data.
+**When to use it:** Every Server Action that accepts user input — no exceptions.
+
+**Analogy:** Client-side validation is a "please knock before entering" sign — polite, but anyone can ignore it. Server-side validation is the actual locked door — the real security.
+
+> 🏆 **Golden Rule:** Never trust client-side validation alone. Always re-validate on the server — the client can be modified, disabled, or bypassed entirely.
+
+---
