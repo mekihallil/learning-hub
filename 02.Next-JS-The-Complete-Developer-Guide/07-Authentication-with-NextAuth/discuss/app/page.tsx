@@ -1,4 +1,9 @@
+import { Button } from "@heroui/react";
 
 export default function Home() {
-  return <div className="text-red-"> Home</div>;
+  return (
+    <div>
+      <Button>Click me !!</Button>
+    </div>
+  );
 }
