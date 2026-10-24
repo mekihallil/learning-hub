@@ -254,3 +254,36 @@ npx auth secret
 > ⚠️ **Warning:** `revalidatePath` can take either a real path (`/snippets/5`) or the route pattern (`/snippets/[id]`, `"page"`). A helper returns the **real** path, so make sure the one you pass matches what you actually want to refresh.
 
 > 🏆 **Golden Rule:** If a URL appears in more than one file, it belongs in `paths.ts`. Links, redirects, and revalidation should all read from the same source of truth.
+
+
+## 🛠️ 50. Path Helper Implementation
+
+**What it does:** Turns the plan from topic 49 into a real `paths.ts` file, then uses it in links, redirects, and revalidation so every URL comes from one place.
+**Why it is used:** Writing the helper is the easy part. The value comes from actually **using it everywhere**, so a route rename becomes a one-line change.
+**When to use it:** Right after planning your routes (topic 48), before building the pages themselves.
+
+**Analogy:** Think of `paths.ts` as the street map for your app. Every component asks the map for directions instead of guessing the address.
+
+
+> ⚠️ **Warning:** `redirect()` works by throwing a special error internally. **Never put it inside a `try/catch`**, or the catch will swallow it and the redirect won't happen. Call it after the `try/catch`, or rethrow.
+
+> 🏆 **Golden Rule:** Keep helpers as plain functions that only return strings. No logic, no database calls. That keeps them safe to import from both Server and Client Components.
+
+
+
+## 📁 51. Creating the Routing Structure
+
+**What it does:** Next.js uses **file-based routing**: the folders you create inside `app/` become the URLs of your app. A folder becomes a page when it contains a `page.tsx` file.
+**Why it is used:** No router config to maintain. The folder tree *is* the route map, which makes the project easy to read and navigate.
+**When to use it:** Every time you add a page. Build the structure first (empty pages are fine), then fill each one in.
+
+**Analogy:** It's like a building directory. Each folder is a floor or room, and `page.tsx` is the door sign that says "you can visit this room."
+
+
+> ⚠️ **Warning:** In Next.js 15+, `params` is a **Promise** and must be awaited. In Next.js 14 and earlier it was a plain object. If you copy older tutorial code and get a params error, this is almost always why.
+
+> ⚠️ **Warning:** Route **order matters for specificity**: `/snippets/new` and `/snippets/[id]` can coexist. Next.js always prefers the exact folder (`new`) over the dynamic one (`[id]`), so `new` never gets treated as an id.
+
+> ⚠️ **Warning:** `params.id` is always a **string**. Convert it with `parseInt(id)` before using it with a numeric database column.
+
+> 🏆 **Golden Rule:** Build the empty routing skeleton first, with each `page.tsx` returning just a heading. Click through every route to confirm the URLs work, **then** add data and features. It's much easier to debug routing when nothing else is happening yet.
