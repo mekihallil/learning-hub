@@ -287,3 +287,95 @@ npx auth secret
 > ⚠️ **Warning:** `params.id` is always a **string**. Convert it with `parseInt(id)` before using it with a numeric database column.
 
 > 🏆 **Golden Rule:** Build the empty routing skeleton first, with each `page.tsx` returning just a heading. Click through every route to confirm the URLs work, **then** add data and features. It's much easier to debug routing when nothing else is happening yet.
+
+
+## 🧩 52. Stubbing Out Server Actions
+
+**What it does:** Creates every Server Action your app will need as an **empty placeholder function** with the correct name, arguments, and `"use server"` directive, before writing any real logic.
+**Why it is used:** The pages need something to import and call. Stubbing lets you wire up forms and buttons right away, click through the whole app, and fill in the database logic afterwards, one action at a time.
+**When to use it:** After planning your mutations (topic 48) and building the routing structure (topic 51).
+
+**Analogy:** A stub is like a labeled empty box on a shelf. The shelf layout is done, the labels are right, and you can fill each box later without rearranging the shelf.
+
+
+Server Action `console.log` output appears in the **server terminal**, which confirms the button or form is really reaching the server.
+
+**Why `.bind(null, id)`?** A form's `action` only receives `FormData`. `.bind` pre-fills the first argument(s), so the action receives your `id` **plus** the form data, without needing a hidden input.
+
+| Action | Typical arguments | Why |
+|---|---|---|
+| `createSnippet` | `(prevState, formData)` | Used with `useActionState` for validation errors |
+| `editSnippet` | `(id, code)` | Called from a Client Component holding the editor's live value |
+| `deleteSnippet` | `(id)` | Just needs to know which record |
+
+> ⚠️ **Warning:** Stubs return nothing useful yet. A form wired to a stub will "do nothing" visually, which is expected. Check the **terminal** for the `console.log` instead of assuming it's broken.
+
+> 🏆 **Golden Rule:** Stub first, implement second. Getting every button to reach its action (and seeing the log) proves your wiring works before the database or validation can confuse the picture.
+
+---
+
+## ♻️ 53. Planning Revalidating Strategies
+
+**What it does:** Decides, for every mutation, **which cached pages must be refreshed afterwards**, so users never see stale data (the problem from topic 37).
+**Why it is used:** Pages are cached aggressively. A Server Action that changes the database does **not** automatically refresh cached pages. You must tell Next.js which ones are now out of date.
+**When to use it:** While planning each Server Action, before implementing it.
+
+**Analogy:** It's like updating a price list. Changing the price in your ledger (the database) isn't enough. You also need to reprint the menu (the cached page) at every table that shows it.
+
+**Step 1: Ask for each mutation, "which pages display this data?"**
+
+| Mutation | Pages showing that data | Revalidate |
+|---|---|---|
+| Create snippet | Home list `/` | `/` |
+| Edit snippet | That snippet's page, plus the home list if it shows the title | `/snippets/[id]` and `/` |
+| Delete snippet | Home list `/` (the snippet's own page no longer exists) | `/` |
+
+**Step 2: Implement it with `revalidatePath`:**
+```tsx
+// actions/index.ts
+"use server";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import paths from "@/paths";
+
+export async function editSnippet(id: number, code: string) {
+  await db.snippet.update({ where: { id }, data: { code } });
+
+  revalidatePath(paths.snippetShow(id)); // refresh this snippet's page
+  revalidatePath(paths.home());          // refresh the list too
+  redirect(paths.snippetShow(id));
+}
+
+export async function deleteSnippet(id: number) {
+  await db.snippet.delete({ where: { id } });
+
+  revalidatePath(paths.home());
+  redirect(paths.home());
+}
+```
+**Output:** After editing, the show page and the home list both display fresh data on the next visit. No manual browser refresh needed.
+
+**Choosing a revalidation tool:**
+
+| Tool | Refreshes | Best for |
+|---|---|---|
+| `revalidatePath("/snippets/5")` | One specific page | Simple apps, a handful of known pages |
+| `revalidatePath("/snippets/[id]", "page")` | Every page matching that dynamic pattern | Refreshing all snippet pages at once |
+| `revalidatePath("/", "layout")` | The whole app under that layout | Big changes, like login/logout changing the navbar |
+| `revalidateTag("snippets")` | Every cached fetch tagged `"snippets"` | Many routes sharing the same data |
+| `export const revalidate = 60` | Time-based, automatic | Data that can be a bit stale (counters, feeds) |
+
+**A simple decision guide:**
+- **Few pages, known URLs** → `revalidatePath` with your path helpers.
+- **Same data used across many pages** → tag the fetches and use `revalidateTag`.
+- **Data that changes on a schedule, not from user actions** → `revalidate` (time-based).
+- **Page must always be live** → make it dynamic (topic 35).
+
+> ⚠️ **Warning:** Order matters: call `revalidatePath` **before** `redirect()`. `redirect` ends the function immediately, so any code after it never runs.
+
+> ⚠️ **Warning:** Over-revalidating (`revalidatePath("/", "layout")` after every action) throws away your caching benefits. Revalidate the **smallest set of pages** that actually show the changed data.
+
+> ⚠️ **Version note:** Caching APIs have been evolving across Next.js 15 and 16 (for example, newer `revalidateTag` usage and additional helpers for immediate updates). `revalidatePath` is stable, but confirm tag-based APIs in the [official docs](https://nextjs.org/docs/app/api-reference/functions/revalidateTag) for your exact version.
+
+> 🏆 **Golden Rule:** Every mutation gets a revalidation plan. When you write a Server Action, finish the sentence: "After this runs, these pages are stale: ___." Then revalidate exactly those.
+
