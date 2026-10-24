@@ -204,3 +204,53 @@ npx auth secret
 > ⚠️ **Warning:** Hiding a button from logged-out users is only cosmetic. Anyone can still call a Server Action directly, so **always re-check `auth()` inside every protected Server Action**.
 
 > 🏆 **Golden Rule:** Check auth status on the **server** whenever possible. It's faster, more secure, and avoids the "flash of logged-out content" you get with client-side checks.
+
+
+
+## 🗺️ 48. Upfront Design Process
+
+**What it does:** A short planning routine you do **before writing any code**: list your pages, decide where data changes, and decide how each page is cached.
+**Why it is used:** Jumping straight into code leads to rewrites. A 15-minute plan tells you which files to create, which Server Actions you need, and which routes can be static vs dynamic, so you avoid the "stale data" and "wrong component type" problems from earlier topics.
+**When to use it:** At the start of every new feature or app, before running `create-next-app`.
+
+**Analogy:** It's the blueprint a builder draws before pouring concrete. Moving a wall on paper costs an eraser; moving it after construction costs a demolition crew.
+
+**The checklist:**
+
+| Step | Question to answer | Example (snippets app) |
+|---|---|---|
+| 1. **List the routes** | What pages does the app need? | `/`, `/snippets/new`, `/snippets/[id]`, `/snippets/[id]/edit` |
+| 2. **Sketch each page** | What does each page show? Which parts are interactive? | Edit page needs the Monaco editor (Client Component) |
+| 3. **Define path helpers** | What are the URLs, in one central place? | See topic 49 |
+| 4. **List the data changes** | Where does data get created, updated, or deleted? | Create snippet, edit snippet, delete snippet |
+| 5. **Plan a Server Action for each change** | One action per mutation | `createSnippet`, `editSnippet`, `deleteSnippet` |
+| 6. **Decide caching per route** | Static, dynamic, or time-based revalidation? | Home page: revalidate after create/edit/delete |
+| 7. **Decide Server vs Client components** | Which pieces need `"use client"`? | Only the editor and buttons with `onClick` |
+
+
+> ⚠️ **Warning:** Skipping this step usually shows up later as "I need to turn this whole page into a Client Component" or "why is my list not updating?" Both are planning problems, not coding problems.
+
+> 🏆 **Golden Rule:** Plan the **routes and mutations first**, then build. Data changes decide which Server Actions you need; routes decide which files you create.
+
+---
+
+
+## 🧭 49. Why Path Helpers
+
+**What it does:** A path helper is a small function (kept in one `paths.ts` file) that returns the URL for a page, so you never type route strings by hand across your app.
+**Why it is used:** Hard-coded strings like `"/snippets/" + id + "/edit"` get copy-pasted into links, redirects, and `revalidatePath` calls. One typo becomes a silent 404, and renaming a route means hunting through every file. With helpers, you change the URL in **one place** and the whole app follows.
+**When to use it:** As soon as your app has more than two or three routes, especially dynamic ones like `/snippets/[id]`.
+
+**Analogy:** It's your phone's contacts list. You don't memorize everyone's number and type it each time. You tap the name, and if a number changes, you update it once.
+
+
+| | Hard-coded strings | Path helpers |
+|---|---|---|
+| **Typo risk** | High, fails silently as a 404 | Low, TypeScript catches wrong arguments |
+| **Renaming a route** | Search and replace in every file | Edit one function |
+| **Autocomplete** | None | ✅ Yes |
+| **Required params** | Easy to forget the `id` | Enforced by the function signature |
+
+> ⚠️ **Warning:** `revalidatePath` can take either a real path (`/snippets/5`) or the route pattern (`/snippets/[id]`, `"page"`). A helper returns the **real** path, so make sure the one you pass matches what you actually want to refresh.
+
+> 🏆 **Golden Rule:** If a URL appears in more than one file, it belongs in `paths.ts`. Links, redirects, and revalidation should all read from the same source of truth.
