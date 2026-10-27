@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "./providers";
 import "./globals.css";
 import Header from "@/components/header";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +29,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <div className="container mx-auto px-4 max-w-6xl">
           <Providers>
-            <Header />
+            <Suspense
+              fallback={<header className="h-16 animate-pulse border-b" />}
+            >
+              <Header />
+            </Suspense>
             {children}
           </Providers>
         </div>
