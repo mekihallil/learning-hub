@@ -379,3 +379,61 @@ export async function deleteSnippet(id: number) {
 
 > 🏆 **Golden Rule:** Every mutation gets a revalidation plan. When you write a Server Action, finish the sentence: "After this runs, these pages are stale: ___." Then revalidate exactly those.
 
+
+## 🧢 54. Building the Header
+
+**What it does:** Creates a shared navigation bar that appears on every page: the app name on the left, and the auth controls (sign in or the user's avatar) on the right.
+**Why it is used:** The header is the one place users expect to find "who am I logged in as" and "how do I log out." Building it once in `layout.tsx` means every page gets it for free.
+**When to use it:** After auth is configured (topics 40 to 47) and your routing structure exists (topic 51).
+
+**Analogy:** The header is the front door of a shop. It stays the same no matter which room you walk into, and the sign on it changes between "Welcome, sign in" and "Welcome back, Manuel."
+
+| Component | What it does |
+|---|---|
+| `Navbar` | The container bar |
+| `NavbarBrand` | The logo or app name area |
+| `NavbarContent` | A group of items (use `justify="end"` to push right) |
+| `NavbarItem` | One item inside a group |
+
+> ⚠️ **Warning:** If you see an error like "You're importing a component that needs useState" when using HeroUI inside a Server Component, add `"use client"` to the top of that file, or wrap the HeroUI pieces in a small Client Component. This depends on your HeroUI version, so follow the error message.
+
+> 🏆 **Golden Rule:** Put anything that must appear on every page (header, footer) in `layout.tsx`, not repeated inside each `page.tsx`.
+
+---
+
+## 👤 55. Displaying the Sign In and Sign Out Buttons
+
+**What it does:** Shows different UI depending on login status: a **Sign In** button for visitors, and the user's **avatar with a Sign Out option** for logged-in users.
+**Why it is used:** The header should always reflect the truth about the user's state. Showing "Sign Out" to someone who isn't logged in is confusing, and the reverse hides the way to log in.
+**When to use it:** Inside the header, using the `auth()` check from topic 47.
+
+**Analogy:** It's a nightclub wristband check. No wristband (no session) shows the "Get in line" sign. A wristband shows your name and the "Leave" door.
+
+| State | `session` value | UI shown |
+|---|---|---|
+| Logged out | `null` | Sign In button |
+| Logged in | `{ user: { name, email, image } }` | Avatar + Sign Out inside a popover |
+
+> ⚠️ **Warning:** Wrap the check as `session?.user`, not just `session`. Use optional chaining so a missing session never crashes the header on every page.
+
+> ⚠️ **Warning:** Calling `auth()` in a component that lives in the **root layout** makes **every route dynamic**, because it reads cookies (see topic 35). That is the normal, expected cost of showing login state in a global header. Don't be surprised when `next build` no longer shows `○ Static` for your pages.
+
+> 🏆 **Golden Rule:** Keep the auth check in **one** component (`HeaderAuth`) and reuse it. Don't scatter `auth()` calls through the header.
+
+---
+
+
+## 🚪 56. Enabling Sign Out
+
+**What it does:** Makes the Sign Out button actually end the session by calling `signOut()` inside a Server Action, which clears the session cookie and redirects the user.
+**Why it is used:** A button that looks right but isn't wired to a server action does nothing. Sign out must run on the **server** because that is where the session cookie is cleared.
+**When to use it:** Any time a user needs to log out, usually from the header popover.
+
+**Analogy:** Pressing "Sign Out" is handing your wristband back at the door. The club (server) has to take it and cross you off the list, or you are still "inside" as far as they know.
+
+
+> ⚠️ **Warning:** Like `redirect()`, `signOut()` and `signIn()` redirect by throwing internally. **Never wrap them in `try/catch`**, or the redirect is swallowed and the user appears stuck.
+
+> ⚠️ **Warning:** Signing out removes the session from **your** app only. The user is still logged in to GitHub itself. That is normal OAuth behavior (topic 43).
+
+> 🏆 **Golden Rule:** Always pass `redirectTo` to `signIn` and `signOut` so users land somewhere intentional (`"/"` or a dashboard) instead of wherever the default sends them.
