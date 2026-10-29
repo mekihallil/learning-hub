@@ -437,3 +437,56 @@ export async function deleteSnippet(id: number) {
 > ⚠️ **Warning:** Signing out removes the session from **your** app only. The user is still logged in to GitHub itself. That is normal OAuth behavior (topic 43).
 
 > 🏆 **Golden Rule:** Always pass `redirectTo` to `signIn` and `signOut` so users land somewhere intentional (`"/"` or a dashboard) instead of wherever the default sends them.
+
+
+## 🧊 57. More Caching Issues
+
+**What it does:** Covers the extra caching surprises that show up once your app has real features (mutations, redirects, a shared header) and not just a single page.
+**Why it is useful:** Most caching bugs don't appear while building. They appear **after** you deploy, because development mode and production mode cache differently.
+**When to care:** Any time something works perfectly on `localhost` but looks stale in production.
+
+**Analogy:** In development, the kitchen cooks every order fresh. In production, the kitchen preps meals in advance to serve faster. A dish that looked fine when cooked fresh can look out of date when pre-made.
+
+
+**Common issues and fixes:**
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| New snippet missing from the list after creating it | List page is cached, no revalidation | `revalidatePath(paths.home())` in the Server Action |
+| Edited snippet still shows old code | Show page is cached | `revalidatePath(paths.snippetShow(id))` |
+| Works in `npm run dev`, stale in production | Dev mode skips most caching | Test with `build` + `start` |
+| Back button shows an old version of a page | Client-side **Router Cache** | Mutations through Server Actions + `revalidatePath` clear it |
+| Deleted snippet page still loads | Page was pre-rendered at build time | Revalidate, or make the route dynamic |
+
+
+
+
+> ⚠️ **Warning:** `force-dynamic` is a blunt tool. It fixes stale data but throws away the speed of caching for that route. Prefer targeted `revalidatePath` after mutations, and keep `force-dynamic` for pages that truly must be live.
+
+> ⚠️ **Version note:** Caching defaults changed between Next.js 14, 15, and 16. If your behavior differs from a tutorial, check your Next.js version first, then the [official caching docs](https://nextjs.org/docs/app/guides/caching).
+
+> 🏆 **Golden Rule:** Development mode lies about caching. **Never call a caching bug fixed until you have tested it with `npm run build && npm start`.**
+
+---
+
+
+
+
+## 🔒 58. Static Caching While Using Auth
+
+**What it does:** Explains how authentication interacts with caching. A page that depends on **who is logged in** can't be a shared static page, because a static page is the same for everyone.
+**Why it matters:** If a cached page is built while logged out, a logged-in visitor could see the logged-out version (for example, the Sign In button in the header even though they are signed in). Worse, if user-specific data were ever cached and shared, users could see **each other's** data.
+**When to care:** Any time you call `auth()` in a layout, page, or component.
+
+**Analogy:** A static page is a photocopy handed to every visitor. A page that says "Hello, Manuel" can't be a photocopy, because the next visitor isn't Manuel.
+
+**How auth makes a route dynamic:**
+`auth()` reads the session **cookie**. In Next.js, reading cookies or headers is a **dynamic API**, so it opts the route into dynamic rendering. Since our `HeaderAuth` calls `auth()` and the header lives in the **root layout**, effectively **every page becomes dynamic**:
+
+
+
+> ⚠️ **Warning:** It's tempting to "fix" every auth caching bug with `export const dynamic = "force-dynamic"` on every page. Since `auth()` in your layout already makes pages dynamic, adding it everywhere rarely helps and can hide the real cause. Find out **which** cache is stale first.
+
+> ⚠️ **Warning:** Hiding UI for logged-out users does **not** protect data. A cached or static page must never contain private information, because cached output can be served to the wrong person.
+
+> 🏆 **Golden Rule:** Anything that depends on **who the user is** must be **dynamic**. Anything that is the **same for everyone** can be static. Decide which each page is during planning (topic 48), then verify it in the build output.
