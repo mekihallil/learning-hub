@@ -490,3 +490,60 @@ export async function deleteSnippet(id: number) {
 > ⚠️ **Warning:** Hiding UI for logged-out users does **not** protect data. A cached or static page must never contain private information, because cached output can be served to the wrong person.
 
 > 🏆 **Golden Rule:** Anything that depends on **who the user is** must be **dynamic**. Anything that is the **same for everyone** can be static. Decide which each page is during planning (topic 48), then verify it in the build output.
+
+
+## 🗂️ 59. Creating Topics
+
+**What it does:** Adds the ability to create a **Topic** (like a category or community, e.g. `javascript` or `cooking`) that users can post inside. This involves a database model, a Server Action that validates and saves the data, and a redirect to the new topic's page.
+**Why it is used:** Topics are the top level of a discussion-style app. Everything else (posts, comments) hangs off them, so creating them correctly comes first.
+**When to use it:** After auth is working, since only **signed-in users** should be able to create topics.
+
+**Analogy:** A topic is like opening a new room in a building and putting a name on the door. The Server Action is the building manager who checks the name is allowed, makes sure no other room already has it, and then builds the room.
+
+
+**The order inside the action matters:**
+
+| Step | Why this order |
+|---|---|
+| 1. Validate | Cheapest check, rejects bad input before touching anything else |
+| 2. Check auth | Never trust the UI hiding the button (topic 47) |
+| 3. Save | Only reached with valid data and a real user |
+| 4. Revalidate, then redirect | `redirect` ends the function, so anything after it never runs |
+
+> ⚠️ **Warning:** **Never put `redirect()` inside the `try/catch`.** It works by throwing a special error, and your `catch` would swallow it. That is why `redirect` sits after the block.
+
+> ⚠️ **Version note:** The `.flatten().fieldErrors` helper is used above. In newer Zod versions (v4) it is deprecated in favor of `z.flattenError(result.error).fieldErrors`. Check the [Zod docs](https://zod.dev) for the version you installed.
+
+> 🏆 **Golden Rule:** Validation errors should come back as **data** (an `errors` object), never as thrown errors. That's what lets `useActionState` show them next to the right input (topic 32).
+
+---
+
+
+## 💬 60. Creating a Popover Form
+
+**What it does:** Shows the "Create Topic" form inside a **popover**, a small floating panel that opens when you click a button, instead of sending the user to a whole new page.
+**Why it is used:** For a short form (two fields), a dedicated page feels heavy. A popover keeps the user where they are and feels fast.
+**When to use it:** Small forms such as create topic, quick rename, or add a tag. For long or multi-step forms, use a full page.
+
+**Analogy:** It's a sticky note pad on your desk. You pull one off, jot something down, and stick it back, without leaving the page you were working on.
+
+
+
+**How the pieces connect:**
+
+| Piece | Job |
+|---|---|
+| `Popover`, `PopoverTrigger`, `PopoverContent` | The floating panel, its opener, and its content |
+| `useActionState` | Calls the Server Action and returns the latest `errors` |
+| `name="..."` on each input | Must match the keys read by `formData.get(...)` and the Zod schema |
+| `isInvalid` + `errorMessage` | HeroUI props that display validation errors under each field |
+| `isLoading={isPending}` | Spinner and disabled state while the action runs |
+| `_form` error box | Shows errors that belong to the **whole** form (like "not signed in") |
+
+> ⚠️ **Warning:** The `name` attributes must match exactly. If an input says `name="title"` but the action reads `formData.get("name")`, the value comes back `null` and validation fails with a confusing error.
+
+> ⚠️ **Warning:** The signed-out case is handled in the **action**, not by hiding the button. Even so, consider showing the "New Topic" button only to signed-in users for better UX, while keeping the server-side check as the real protection.
+
+> ⚠️ **Version note:** If you used HeroUI v3 instead of v2 (topic 41), component names and props differ. Check the HeroUI docs for the matching version if a prop isn't recognized.
+
+> 🏆 **Golden Rule:** Form field errors live in **three levels**: per-field (`name`, `description`), whole-form (`_form`), and loading (`isPending`). Handling all three is what makes a form feel finished.
