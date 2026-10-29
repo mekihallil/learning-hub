@@ -711,3 +711,112 @@ const schema = z.object({
 > ⚠️ **Warning:** Every field the schema validates needs a matching optional key in the interface. If you add `slug` to your Zod schema but forget it in `FormState`, TypeScript will complain at the line returning `fieldErrors`. That is the type system doing its job.
 
 > 🏆 **Golden Rule:** `errors` is an object of **optional string arrays**, plus `_form` for everything that isn't about one specific field. Keep that shape consistent across all your forms and every form component looks the same.
+
+
+## 🚨 66. Displaying Validation Errors
+
+**What it does:** Shows each field's error message **right next to the input that caused it**, using the `errors` object returned by the Server Action.
+**Why it is used:** "Something is wrong" is frustrating. "Name must be at least 3 characters" under the Name box tells the user exactly what to fix.
+**When to use it:** Every field that your Zod schema (topic 62) validates.
+
+**Analogy:** A teacher grading a test writes the correction **beside the wrong answer**, not a single note at the bottom of the page.
+
+
+**Breaking it down:**
+
+| Piece | What it does |
+|---|---|
+| `formState.errors.name` | `string[]` or `undefined` (no errors yet) |
+| `!!formState.errors.name` | Turns it into `true` or `false` (double negation) for `isInvalid` |
+| `?.join(", ")` | Safely combines several messages into one line. `?.` prevents a crash when it's `undefined` |
+| `isInvalid` | HeroUI prop that turns the input red |
+| `errorMessage` | HeroUI prop that shows the text under the input |
+
+
+> ⚠️ **Warning:** The field's `name` attribute, the Zod schema key, and the `errors` key must all match. If the input says `name="title"` but the schema says `name`, the error appears under the wrong field or not at all.
+
+> ⚠️ **Warning:** Use `?.` (optional chaining) every time. On first load `errors` is `{}`, so `errors.name.join(...)` would crash the page with "Cannot read properties of undefined."
+
+> 🏆 **Golden Rule:** Put each message **next to its field**, and always make the input itself look invalid (red border or `aria-invalid`). Color plus text works for everyone, including screen reader users.
+
+---
+
+## 📣 67. Handling General Form Errors
+
+**What it does:** Shows errors that belong to the **whole form**, not one field, such as "You must be signed in" or "Something went wrong." These travel in the special `_form` key.
+**Why it is used:** Some problems have no matching input. A user can type perfect values and still fail because their session expired. Without a general error area, that failure is silent.
+**When to use it:** Any non-field problem: not signed in, no permission, rate limited, server trouble.
+
+**Analogy:** Field errors are red pen notes beside individual answers. A general error is the note at the top of the page: "This test was submitted after the deadline."
+
+
+
+**Field errors vs general errors:**
+
+| | Field error | General error (`_form`) |
+|---|---|---|
+| **About** | One input's value | The whole submission |
+| **Example** | "Name too short" | "You must be signed in" |
+| **Key in `errors`** | `name`, `description` | `_form` |
+| **Shown** | Under that input | Above or below the whole form |
+| **Fixed by** | Editing that input | Signing in, retrying, contacting support |
+
+**Common sources of `_form` errors:**
+- Not signed in (topic 47)
+- Not allowed to do this (wrong role)
+- Database or network failure (topic 68)
+- Rate limiting ("Too many attempts, try again later")
+
+> ⚠️ **Warning:** `_form` is just a **naming convention**. The underscore avoids clashing with a real field called `form`. Whatever you pick, use the same key in the action, the `FormState` type (topic 65), and the component.
+
+> ⚠️ **Warning:** `role="alert"` makes screen readers announce the message as soon as it appears. Keep it on general errors so users who can't see the red box still hear about the failure.
+
+> 🏆 **Golden Rule:** Every form needs **two places** for errors: next to each field, and one general spot. Without the second, unexpected failures look like the button simply broke.
+
+---
+
+
+
+## 🗃️ 68. Handling Database Errors in Forms
+
+**What it does:** Catches failures from the database (like a duplicate name) and turns them into a **friendly `_form` error**, instead of letting the page crash with a technical error screen.
+**Why it is used:** Validation checks the *shape* of the data, but only the database knows if it *conflicts* with existing records. Two users can submit the topic `javascript` at the same moment, and both pass validation. Only one can win.
+**When to use it:** Around every database write (`create`, `update`, `delete`) inside a Server Action.
+
+**Analogy:** Validation checks that your reservation form is filled in correctly. The restaurant only discovers the table is already taken when you try to book it. A good host says "That table is taken, want another?" rather than shouting an internal error code.
+
+
+
+**Common Prisma error codes:**
+
+| Code | Meaning | Friendly message |
+|---|---|---|
+| `P2002` | Unique constraint failed (duplicate) | "That name is already taken" |
+| `P2025` | Record not found (update or delete target is gone) | "That item no longer exists" |
+| `P2003` | Foreign key constraint failed | "The related item doesn't exist" |
+
+**Notice the two different destinations:**
+- A **duplicate name** is the user's fixable input mistake, so it goes under the **`name` field**.
+- An **unknown failure** isn't their fault and isn't fixable by editing a field, so it goes to **`_form`**.
+
+**Why not show the raw error message?**
+```tsx
+// ❌ Leaks internals to the user and looks scary
+return { errors: { _form: [err.message] } };
+// → "Invalid `prisma.topic.create()` invocation: Unique constraint failed on the fields: (`slug`)"
+
+// ✅ Safe and readable
+return { errors: { _form: ["Something went wrong. Please try again."] } };
+```
+Log the real error on the **server** for yourself instead:
+```tsx
+console.error("createTopic failed:", err);
+```
+
+> ⚠️ **Warning:** **Never put `redirect()` inside the `try` block.** It works by throwing a special error, and your `catch` would catch it and show "Something went wrong" on a successful save. Keep `redirect()` after the `try/catch`, as shown.
+
+> ⚠️ **Warning:** Raw database messages can reveal table names, column names, and query details. Show users a generic message, and keep the details in your server logs.
+
+> ⚠️ **Version note:** The `Prisma` import path depends on your generator setup. With the classic `prisma-client-js` generator it comes from `@prisma/client`. Newer Prisma versions (including 7) can generate the client into a custom folder, in which case you import from **that generated path** instead. Check your `schema.prisma` `generator` block and the [Prisma docs](https://www.prisma.io/docs) if `Prisma.PrismaClientKnownRequestError` isn't found.
+
+> 🏆 **Golden Rule:** Treat the database as the **final validator**. Catch the errors you can explain to the user (duplicates, missing records) and return them near the right field. Everything else becomes a generic `_form` message, with the real error logged on the server.
