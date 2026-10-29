@@ -547,3 +547,106 @@ export async function deleteSnippet(id: number) {
 > ⚠️ **Version note:** If you used HeroUI v3 instead of v2 (topic 41), component names and props differ. Check the HeroUI docs for the matching version if a prop isn't recognized.
 
 > 🏆 **Golden Rule:** Form field errors live in **three levels**: per-field (`name`, `description`), whole-form (`_form`), and loading (`isPending`). Handling all three is what makes a form feel finished.
+
+
+## 📨 61. Receiving Form Data
+
+**What it does:** When a form is submitted to a Server Action, the browser packages every field into a standard web object called **`FormData`**. Your action receives it as an argument, and you read each value by the field's `name`.
+**Why it is used:** This is the bridge between what the user typed and your server code. No `onChange` handlers, no `useState` per field. The browser already collects everything for you.
+**When to use it:** Every Server Action connected to a `<form action={...}>`.
+
+**Analogy:** A paper form with labeled boxes. Each box has a label (`name`), and the clerk (your action) looks up what's written in each box by its label.
+
+
+
+> ⚠️ **Warning:** Every field **must** have a `name` attribute. An input without one is silently left out of `FormData`, and `.get()` returns `null`.
+
+> ⚠️ **Warning:** `Object.fromEntries(formData)` in a Server Action also includes extra internal keys that Next.js adds (names starting with `$ACTION_`). Prefer reading the fields you need with `.get()`, or let Zod pick only the keys in your schema (topic 62).
+
+> 🏆 **Golden Rule:** Everything in `FormData` is untrusted text. **Never** use a value directly. Always validate it first.
+
+---
+
+
+## 🛡️ 62. Adding Form Validation With Zod
+
+**What it does:** Zod is a library where you describe **what valid data looks like** (a schema), then check incoming data against it. It returns either clean, typed data or a detailed list of what's wrong.
+**Why it is used:** Hand-writing `if (!name || name.length < 3 || ...)` for every field gets long and messy. A schema is short, readable, and reusable, and it also gives you TypeScript types for free.
+**When to use it:** At the **top of every Server Action** that accepts user input, before touching the database.
+
+**Analogy:** A bouncer with a checklist at the door. Each guest (field) is checked against the list, and anyone who fails gets sent back with a note explaining exactly why.
+
+
+
+**`parse` vs `safeParse`:**
+
+| | `schema.parse(data)` | `schema.safeParse(data)` |
+|---|---|---|
+| On invalid data | **Throws** an error | Returns `{ success: false, error }` |
+| On valid data | Returns the data | Returns `{ success: true, data }` |
+| Best for | Internal code that should never fail | **Form validation** (errors are expected, not exceptional) |
+
+**Handy Zod building blocks:**
+
+| Rule | Example |
+|---|---|
+| Required text | `z.string().min(1, "Required")` |
+| Max length | `z.string().max(100)` |
+| Email | `z.string().email()` |
+| Number from a form string | `z.coerce.number().min(1)` |
+| Optional field | `z.string().optional()` |
+| Allowed values | `z.enum(["draft", "published"])` |
+| Custom rule | `z.string().refine(v => !v.includes(" "), "No spaces")` |
+
+**Practical example: form numbers arrive as strings, so coerce them**
+```tsx
+const schema = z.object({
+  age: z.coerce.number().min(18, "Must be 18 or older"),
+});
+// "21" → 21 ✅   "abc" → error ❌
+```
+
+> ⚠️ **Warning:** Always validate on the **server**, inside the action. Client-side checks can be bypassed, and the server is your real safety net (topic 31).
+
+> ⚠️ **Version note:** The `.flatten().fieldErrors` helper shown here is the long-standing Zod pattern, but newer Zod versions (v4) deprecate it in favor of `z.flattenError(result.error).fieldErrors`. Check the [Zod docs](https://zod.dev) for the version you installed.
+
+> 🏆 **Golden Rule:** Use `result.data` (the validated output) for everything after validation, never the original `formData`. That way only checked data ever reaches your database.
+
+
+
+## 🔁 63. Reminder on the `useActionState` Hook
+
+**What it does:** Connects a **form** to a **Server Action** and hands back three things: the action's latest result (`state`), a wrapped action to put on the form, and a `pending` flag.
+**Why it is used:** It's how validation errors from the server (topic 62) get back to the right input on screen, without writing manual `useState` and `fetch` code.
+**When to use it:** Any form that needs to show errors, success messages, or a loading state.
+
+**Analogy:** A waiter who carries your order to the kitchen **and** brings back a note on the tray: "kitchen is out of salmon." `state` is that note.
+
+
+
+| Piece | What it is |
+|---|---|
+| `state` | Whatever the Server Action last **returned** (starts as `initialState`) |
+| `formAction` | The wrapped action to pass to `<form action={...}>` |
+| `isPending` | `true` while the action is running |
+| `serverAction` | Your Server Action, which must accept `(prevState, formData)` |
+| `initialState` | The starting `state`, so its shape should match what the action returns |
+
+
+**Common gotchas:**
+
+| Problem | Cause | Fix |
+|---|---|---|
+| Hook crashes or does nothing | Missing `"use client"` | Add it at the top of the file |
+| `formData` is `undefined` in the action | Forgot the `prevState` argument | Signature must be `(prevState, formData)` |
+| Errors never appear | Action `throw`s instead of `return`s | Return an `errors` object |
+| TypeScript error on `state.errors.name` | `initialState` shape doesn't match the return type | Define one shared `State` interface and use it for both |
+| **Form fields clear after a failed submit** | React 19 resets uncontrolled forms after an action runs | Return the submitted values in `state` and use them as `defaultValue` |
+
+
+
+> ⚠️ **Warning:** `redirect()` after success unmounts the form, so there is no "success" `state` to show. Redirect, or return a success message, but you usually don't need both.
+
+> ⚠️ **Naming note:** In older tutorials this hook is called `useFormState` and is imported from `react-dom`. In React 19 it is `useActionState`, imported from `react` (topic 29). Same idea, new name and location.
+
+> 🏆 **Golden Rule:** The loop is always the same: **form → Server Action → returns `errors` → `useActionState` hands it back → UI shows it.** If an error doesn't show up, check each link in that chain.
