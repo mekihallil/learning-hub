@@ -1,3 +1,4 @@
+import TopicList from "@/components/topics/topicList";
 import TopicCretaeForm from "@/components/topics/topicsCreateForm";
 
 export default function Home() {
@@ -9,6 +10,9 @@ export default function Home() {
         </div>
         <div>
           <TopicCretaeForm />
+          <div className="my-2" />
+          <h3 className="text-lg">Topics</h3>
+          <TopicList />
         </div>
       </div>
     </div>
