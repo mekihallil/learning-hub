@@ -10,6 +10,7 @@ import {
 } from "@heroui/react";
 import * as actions from "../../actions/action";
 import { useActionState } from "react";
+import FormButton from "../common/formButton";
 export default function TopicCretaeForm() {
   const [formState, action] = useActionState(actions.createTopic, {
     errors: {},
@@ -44,7 +45,7 @@ export default function TopicCretaeForm() {
                   {formState.errors?._form?.join(", ")}
                 </div>
               ) : null}
-              <Button type="submit"> Submit</Button>
+              <FormButton>Save</FormButton>
             </div>
           </form>
         </Popover.Dialog>
