@@ -7,10 +7,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@heroui/react/popover";
 import FormButton from "../common/formButton";
 import { useActionState } from "react";
 import { FieldError, Label, TextArea, TextField } from "@heroui/react";
-export default function PostCreateForm() {
-  const [formState, actions] = useActionState(action.createPost, {
-    errors: {},
-  });
+interface postCreateFromProps {
+  slug: string;
+}
+export function PostCreateForm({ slug }: postCreateFromProps) {
+  const [formState, actions] = useActionState(
+    action.createPost.bind(null, slug),
+    {
+      errors: {},
+    },
+  );
   return (
     <Popover>
       <PopoverTrigger>
