@@ -209,3 +209,88 @@ Without that callback, `session.user.id` is `undefined`, the check fails, and **
 > ⚠️ **Warning:** Return the error rather than throwing it, so `useActionState` can display it (topic 32). Throwing sends the user to a crash screen.
 
 > 🏆 **Golden Rule:** The full action order is **validate → authenticate → save → revalidate → redirect**. Memorize it. Every protected Server Action in your app follows the same five steps.
+
+
+## 🎒 75. Passing Additional Args to a Server Action
+
+**What it does:** Sends **extra values** (like the topic `slug` or a record `id`) to a Server Action, on top of the `FormData` the form already provides.
+**Why it is used:** A form only knows about its own inputs. But `createPost` also needs to know **which topic** the post belongs to, and that information lives in the URL, not in any input box.
+**When to use it:** Any time an action needs context the user didn't type: the current topic, the record being edited, the item being deleted.
+
+**Analogy:** A form is a paper slip. The user fills in the boxes, but the **street name** is already printed on the mailbox you're dropping it into. `.bind()` is like pre-stamping the slip with that street name before handing it over.
+
+**The three ways to do it:**
+
+| Approach | How | Pros | Cons |
+|---|---|---|---|
+| **`.bind(null, value)`** | `createPost.bind(null, slug)` | Clean, no extra HTML, works with `useActionState` | Argument order matters |
+| **Hidden input** | `<input type="hidden" name="slug" value={slug} />` | Simple, easy to read in `formData` | Visible in the page source, easy to edit |
+| **Direct call with args** | `onClick={() => deletePost(id)}` in a Client Component | Great for buttons without a form (topic 24) | Not used with `<form action>` |
+
+
+| Position | Parameter | Comes from |
+|---|---|---|
+| 1st | `slug` | `.bind(null, slug)` |
+| 2nd | `prevState` | `useActionState` (always passes the last state) |
+| 3rd | `formData` | The browser, when the form is submitted |
+
+`.bind(null, slug)` always **pre-fills from the left**, so your own arguments come **first**, then the ones React adds.
+
+
+> ⚠️ **Warning:** **Bound values and hidden inputs both travel through the browser, so a user can change them.** Treat them as **untrusted input**, exactly like form fields. Inside the action, verify the topic really exists and that the user is allowed to post there.
+
+> ⚠️ **Warning:** Only pass **serializable** values (strings, numbers, plain objects). You can't bind functions, class instances, or database client objects.
+
+> ⚠️ **Warning:** **Never pass the user's id this way.** Always take it from `auth()` on the server (topic 74). A passed-in user id could be edited to impersonate someone else.
+
+> 🏆 **Golden Rule:** Pass **identifiers** (slug, id) as extra arguments, and **look up the real data** on the server. The client says *which* topic. The server decides *whether that's valid* and loads everything else itself.
+
+---
+
+
+
+## 💾 76. Creating the Record
+
+**What it does:** Finishes `createPost` by **saving the post to the database**: it finds the topic from the slug, creates a `Post` linked to that topic and to the signed-in user, then refreshes the cache and redirects.
+**Why it is used:** Validation (topic 73) and the auth check (topic 74) only decide whether saving is allowed. This is the step that actually stores the data.
+**When to use it:** As the last step of a create action, after validation and authentication have passed.
+
+
+**What goes into `data`, and where each value comes from:**
+
+| Field | Source | Why this source |
+|---|---|---|
+| `title` | `result.data` (validated form input) | The user typed it, and Zod checked it |
+| `content` | `result.data` (validated form input) | Same |
+| `userId` | `session.user.id` from `auth()` | **Server-verified**, can't be faked by the client |
+| `topicId` | Looked up from the `slug` in the database | The slug is untrusted, so we convert it to a real id ourselves |
+
+**The five steps, in order:**
+
+| Step | What happens | If it fails |
+|---|---|---|
+| 1. Validate | Zod checks title and content | Return field errors |
+| 2. Authenticate | `auth()` must return a user id | Return a `_form` error |
+| 3. Look up the topic | Confirm the slug points to a real topic | Return a `_form` error |
+| 4. Create the record | `db.post.create(...)` inside `try/catch` | Return a generic `_form` error, log the real error |
+| 5. Revalidate + redirect | Clear stale cache, send the user onward | (not expected to fail) |
+
+**What to revalidate:** the page that **lists** the new post, which is the topic page. If the home page also showed recent posts, you would revalidate it as well (topic 53):
+
+
+**Quick test checklist:**
+- [ ] Submit an empty form → field errors appear under each input
+- [ ] Submit while signed out → "You must be signed in" appears
+- [ ] Submit with a made-up slug in the URL → "Cannot find topic" appears
+- [ ] Submit valid data while signed in → redirected to the new post
+- [ ] Open the database (`npx prisma studio`) → the `Post` row exists with the right `userId` and `topicId`
+
+> ⚠️ **Warning:** **`redirect()` must stay outside the `try/catch`.** It works by throwing a special error, and the `catch` would swallow it and show "Something went wrong" after a successful save (topic 68).
+
+> ⚠️ **Warning:** `revalidatePath` must come **before** `redirect()`. `redirect` ends the function immediately, so anything after it never runs.
+
+> ⚠️ **Warning:** The redirect target (`/topics/[slug]/posts/[postId]`) doesn't exist until you build that route (topic 51 pattern). Until then, redirect to `paths.topicShow(slug)` so the user lands somewhere real.
+
+> ⚠️ **Version note:** The `Post` type import path depends on your Prisma generator setup. With the classic `prisma-client-js` generator it comes from `@prisma/client`. Newer Prisma versions (including 7) can generate the client into a custom folder, so import from **that generated path** if the import isn't found.
+
+> 🏆 **Golden Rule:** In a create action, **never trust the client for ownership or relationships.** Take the user from `auth()`, convert the slug into a real topic from your own database, and write only validated values. The client supplies *what* to say, the server decides *who* said it and *where* it goes.
