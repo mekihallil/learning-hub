@@ -139,3 +139,73 @@ This is the pattern from topic 22: a Server Component renders a Client Component
 > ⚠️ **Warning:** The popover form submits fine, but it **doesn't close itself** after a successful save by default. Redirecting after the save (topic 59) handles that, since the page re-renders.
 
 > 🏆 **Golden Rule:** Display the form and prove the data arrives (check the server log) **before** adding validation and database logic. Each step is far easier to debug when only one thing is new.
+
+
+## ✅ 73. Applying Validation to Post Creation
+
+**What it does:** Fills in the first part of the `createPost` stub (topic 72) by checking the title and content with a Zod schema **before** anything else happens. Bad input is sent back as field errors, and good input moves on to the next step.
+**Why it is used:** Form data is untrusted text (topic 61). Validating first means the database never sees empty, oversized, or malformed values.
+**When to use it:** At the very top of every Server Action that accepts input. It's the same pattern as `createTopic` (topic 62), applied to a new form.
+
+
+
+| | `createTopic` | `createPost` |
+|---|---|---|
+| **Fields** | `name`, `description` | `title`, `content` |
+| **Extra argument** | None | `slug`, pre-filled with `.bind()` (topic 72) |
+| **Schema** | `createTopicSchema` | `createPostSchema` |
+| **State type** | `CreateTopicFormState` | `CreatePostFormState` (same shape, different field keys) |
+
+**Reminder of the rule:** every key in the schema, the `FormState` interface, the `name=""` attribute of the input, and the `errors.x` read in the component must **match exactly** (topics 64 and 66).
+
+> ⚠️ **Warning:** Validate with `safeParse`, not `parse`. `parse` throws on bad input, and a thrown error crashes the form instead of returning friendly messages (topic 62).
+
+> ⚠️ **Warning:** Use `result.data` for everything after validation. Don't go back to `formData.get(...)`, or you bypass the checks you just wrote.
+
+> ⚠️ **Version note:** `.flatten().fieldErrors` is the long-standing Zod pattern. Newer Zod versions (v4) deprecate it in favor of `z.flattenError(result.error).fieldErrors`. Check the [Zod docs](https://zod.dev) for the version you installed.
+
+> 🏆 **Golden Rule:** Validation is **step one** in every action: validate, then authenticate, then save. Cheap checks first, so bad requests are rejected before they cost you a session lookup or a database call.
+
+---
+
+## 🔐 74. Checking Authentication Status
+
+**What it does:** Adds the second step to `createPost`: it asks `auth()` who is making the request, and refuses to continue if nobody is signed in. It also gives you the user's `id`, which you'll need to record **who wrote** the post.
+**Why it is used:** Hiding the "New Post" button from logged-out users is only cosmetic. Anyone can call a Server Action directly, so the **action itself** must verify the session (topic 47).
+**When to use it:** In every Server Action that creates, edits, or deletes something belonging to a user.
+
+
+
+| Check | Catches |
+|---|---|
+| `!session` | Nobody is signed in at all (`auth()` returned `null`) |
+| `!session.user` | A session object exists but has no user data |
+| `!session.user.id` | The user exists but the `id` wasn't added to the session (see below) |
+
+
+Without that callback, `session.user.id` is `undefined`, the check fails, and **signed-in users** get "You must be signed in."
+
+> If TypeScript says `Property 'id' does not exist on type 'User'`, extend the Auth.js types in a `next-auth.d.ts` file so `session.user.id` is a known string. See the [Auth.js docs on module augmentation](https://authjs.dev) for your version.
+
+**Check order inside the action:**
+
+| Step | Why it comes here |
+|---|---|
+| 1. Validate | Cheapest check, rejects obviously bad input immediately |
+| 2. Check auth | A session lookup is more expensive, so only do it for valid input |
+| 3. Save | Only reached by a valid request from a real user |
+
+**Two places to protect, not one:**
+
+| Where | Purpose | Strength |
+|---|---|---|
+| **UI** (hide the button for signed-out users) | Better user experience | Cosmetic only, easy to bypass |
+| **Server Action** (`auth()` check) | Real security | Can't be bypassed from the browser |
+
+> ⚠️ **Warning:** Never skip the check because "the button is hidden." Server Actions are reachable over the network, so each protected action must verify the session itself.
+
+> ⚠️ **Warning:** Never take the user's id from the form (a hidden input or `formData`). A user could edit it and post as someone else. **Always take the id from `auth()` on the server.**
+
+> ⚠️ **Warning:** Return the error rather than throwing it, so `useActionState` can display it (topic 32). Throwing sends the user to a crash screen.
+
+> 🏆 **Golden Rule:** The full action order is **validate → authenticate → save → revalidate → redirect**. Memorize it. Every protected Server Action in your app follows the same five steps.
