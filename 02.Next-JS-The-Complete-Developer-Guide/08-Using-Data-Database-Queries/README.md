@@ -659,3 +659,53 @@ export const getTopicBySlug = cache(async (slug: string) => {
 > ⚠️ **Warning:** Always handle the **empty case** (`posts.length === 0`) inside the child. A component that fetches for itself is responsible for what it shows when there's nothing to show.
 
 > 🏆 **Golden Rule:** Pass **identifiers down, not data**. Let each Server Component ask the database for exactly what it displays, use `include`/`select` to avoid per-item queries, wrap slow children in `Suspense`, and use `cache()` when two components need the same record.
+
+
+## ⭐ 79. Recommended Data Fetching
+
+**What it does:** Pulls topics 77 and 78 together into **one recommended pattern**: write your database queries as small functions in a dedicated folder, derive their types automatically, and let the **page** choose which query a reusable component should run.
+**Why it is used:** Fetching inside components works, but it scatters queries across the app. This pattern keeps queries in **one place**, keeps components **reusable**, and keeps types **correct** without writing them by hand.
+**When to use it:** Any time the same kind of list or record appears on more than one page (posts on a topic page, on a search page, on a profile page).
+
+
+
+**How the derived type works, piece by piece:**
+
+| Piece | Meaning |
+|---|---|
+| `typeof fetchPostsByTopicSlug` | The function itself, as a type |
+| `ReturnType<...>` | What that function returns: `Promise<Post[]>` (with the included fields) |
+| `Awaited<...>` | Unwraps the `Promise`, leaving the plain array |
+| `[number]` | Takes **one element** of that array, giving a single post's type |
+
+
+
+| Passing data (`posts={posts}`) | Passing a function (`fetchData={...}`) |
+|---|---|
+| The page must `await` first, so it **blocks** | The page returns immediately, the child fetches |
+| Can't use `Suspense` to stream the list | ✅ Wrap the list in `Suspense` and it streams in |
+| Simple | Slightly more indirection, but more flexible |
+
+
+
+| Recommendation | Why |
+|---|---|
+| Put queries in `db/queries/*.ts` | One place to find, change, and review every query |
+| Derive types with `Awaited<ReturnType<...>>[number]` | Types always match the real query, with zero manual typing |
+| Make display components **reusable**: take a `fetchData` function | One component serves many pages |
+| Let the **page** choose the query | Pages know the context (which topic, which search term) |
+| Use `include` / `select` in the query | Avoids one query per list item (the N+1 problem, topic 78) |
+| Wrap slow components in `Suspense` | Fast parts of the page appear immediately |
+| Use `Promise.all` for independent queries in the same place | Queries run in parallel, not one after another |
+| Use `cache()` for queries shared by several components | One database hit per request |
+| Revalidate after mutations (topic 53) | Fetched data stays fresh after creates, edits, and deletes |
+
+> ⚠️ **Warning:** **Only pass `fetchData` from a Server Component to another Server Component.** A function can't be sent to a **Client Component** (`"use client"`), because functions aren't serializable. If a Client Component needs data, fetch it in a Server Component and pass the **plain result** as props.
+
+> ⚠️ **Warning:** Don't put the `"use server"` directive in query files. That directive turns exported functions into publicly callable **Server Actions**. Queries are internal helpers and should stay private to the server.
+
+> ⚠️ **Warning:** Keep queries **read-only** in `db/queries/`. Creates, updates, and deletes belong in **Server Actions** (`actions/`), which validate input and check authentication (topics 73 to 76).
+
+> ⚠️ **Warning:** Each query function runs **every time it is called**. `cache()` only dedupes inside one request. It does not replace Next.js caching or `revalidatePath` (topics 36 and 53).
+
+> 🏆 **Golden Rule:** **Queries live in one folder, types are derived from them, components stay generic, and pages choose what to show.** If you change the data a list needs, you edit one query file and the types follow automatically.
