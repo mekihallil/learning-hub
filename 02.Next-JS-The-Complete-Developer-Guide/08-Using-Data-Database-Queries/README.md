@@ -294,3 +294,162 @@ Without that callback, `session.user.id` is `undefined`, the check fails, and **
 > ⚠️ **Version note:** The `Post` type import path depends on your Prisma generator setup. With the classic `prisma-client-js` generator it comes from `@prisma/client`. Newer Prisma versions (including 7) can generate the client into a custom folder, so import from **that generated path** if the import isn't found.
 
 > 🏆 **Golden Rule:** In a create action, **never trust the client for ownership or relationships.** Take the user from `auth()`, convert the slug into a real topic from your own database, and write only validated values. The client supplies *what* to say, the server decides *who* said it and *where* it goes.
+
+
+## 🧭 77. Considerations Around Where to Fetch Data
+
+**What it does:** Helps you decide **which component should query the database**: the page (which passes data down as props) or the individual component that displays it.
+**Why it is useful:** Server Components let you fetch data anywhere, so there's no single "right" place. The choice affects how **reusable** your components are, how many **database queries** run, and how easy the code is to **change later**.
+**When to think about it:** Every time a page shows data in several components, such as a post list, a post detail, and a comment section.
+
+**Analogy:** Two ways to cater a party. **Option A:** one person shops for everything, then hands each cook their ingredients (fetch in the page, pass down). **Option B:** each cook goes to the market for their own ingredients (each component fetches its own). A is efficient, but the cooks depend on the shopper. B is independent, but you may get several trips to the same store.
+
+**The two approaches:**
+
+**Option A: fetch in the page, pass data down as props**
+```tsx
+// app/topics/[slug]/page.tsx
+export default async function TopicShowPage({ params }: Props) {
+  const { slug } = await params;
+
+  const posts = await db.post.findMany({
+    where: { topic: { slug } },
+    include: { user: true, _count: { select: { comments: true } } },
+  });
+
+  return <PostList posts={posts} />;
+}
+```
+```tsx
+// components/posts/PostList.tsx  (receives data, doesn't fetch)
+export default function PostList({ posts }: { posts: PostWithData[] }) {
+  return posts.map((post) => <div key={post.id}>{post.title}</div>);
+}
+```
+
+**Option B: each component fetches what it needs**
+```tsx
+// app/topics/[slug]/page.tsx
+export default async function TopicShowPage({ params }: Props) {
+  const { slug } = await params;
+  return <PostList slug={slug} />;
+}
+```
+```tsx
+// components/posts/PostList.tsx  (fetches its own data)
+export default async function PostList({ slug }: { slug: string }) {
+  const posts = await db.post.findMany({ where: { topic: { slug } } });
+  return posts.map((post) => <div key={post.id}>{post.title}</div>);
+}
+```
+
+**Comparing them:**
+
+| | A: Fetch in the page | B: Fetch in the component |
+|---|---|---|
+| **Reusability** | Component works with **any** source that returns the right shape | Component is **tied** to its own query |
+| **Self-contained?** | No, the parent must know what data to supply | ✅ Yes, drop it anywhere with just an id or slug |
+| **Duplicate queries?** | Rare, one fetch is shared | Possible if two components ask for the same thing |
+| **Prop drilling** | Can pass data through many layers | None |
+| **Typing** | You must define the data's shape (see below) | Type is inferred from the query |
+| **Streaming** | Whole page waits for the slowest query | Each component can load on its own (see `Suspense` below) |
+| **Best for** | Shared data, or reusable "dumb" display components | Independent sections of a page |
+
+**Concern 1: duplicate queries.** If two components each query the same record, the database is hit twice. Next.js automatically dedupes identical `fetch()` calls within one render (**request memoization**, topic 34), but **Prisma queries are not `fetch()`**, so they aren't deduped for you. Wrap the query in React's `cache` to share the result:
+```tsx
+// lib/queries/topics.ts
+import { cache } from "react";
+import { db } from "@/lib/db";
+
+export const getTopicBySlug = cache(async (slug: string) => {
+  return db.topic.findUnique({ where: { slug } });
+});
+```
+```tsx
+// Both of these now share ONE database query during the same request
+const topic = await getTopicBySlug(slug);   // in the page
+const topic = await getTopicBySlug(slug);   // in a child component
+```
+**Output:**
+```
+Without cache():  2 components → 2 queries
+With cache():     2 components → 1 query (second call reuses the first result)
+```
+
+**Concern 2: typing data you pass down.** With Option A, the child needs a type for what the parent fetched, especially when the query uses `include` or `select`. Derive it from the query itself so it never drifts out of date:
+```tsx
+// lib/queries/posts.ts
+import type { Post } from "@prisma/client";
+
+export type PostWithData = Post & {
+  topic: { slug: string };
+  user: { name: string | null };
+  _count: { comments: number };
+};
+
+export function fetchPostsByTopicSlug(slug: string): Promise<PostWithData[]> {
+  return db.post.findMany({
+    where: { topic: { slug } },
+    include: {
+      topic: { select: { slug: true } },
+      user: { select: { name: true } },
+      _count: { select: { comments: true } },
+    },
+  });
+}
+```
+```tsx
+// The page passes the function in, so the list component stays reusable
+<PostList fetchData={() => fetchPostsByTopicSlug(slug)} />
+```
+```tsx
+// components/posts/PostList.tsx
+export default async function PostList({
+  fetchData,
+}: {
+  fetchData: () => Promise<PostWithData[]>;
+}) {
+  const posts = await fetchData();
+  // render posts...
+}
+```
+This keeps `PostList` **reusable**: the topic page, a search page, and a user profile page can each pass their own query function, as long as it returns `PostWithData[]`.
+
+**Concern 3: sequential vs. parallel fetching.** Two `await`s in a row run **one after the other**, which adds up:
+```tsx
+// ❌ Sequential: total time = query 1 + query 2
+const topic = await getTopic(slug);
+const posts = await getPosts(slug);
+
+// ✅ Parallel: total time = the slower of the two
+const [topic, posts] = await Promise.all([getTopic(slug), getPosts(slug)]);
+```
+
+**Concern 4: slow sections shouldn't block the page.** With Option B, wrap a slow component in `Suspense`. The rest of the page appears immediately and the slow part streams in:
+```tsx
+import { Suspense } from "react";
+
+<h1>{topic.slug}</h1>
+<Suspense fallback={<p>Loading posts...</p>}>
+  <PostList slug={slug} />
+</Suspense>
+```
+This is the component-level version of the automatic `loading.tsx` spinner (topic 20).
+
+**A simple decision guide:**
+
+| Situation | Choose |
+|---|---|
+| Several components need the **same** data | Fetch once in the page and pass down, or share a `cache()`d function |
+| A component should be **reusable** across pages | Option A with a passed-in fetch function (or pass data in directly) |
+| A section is **independent** and possibly slow | Option B + `Suspense` |
+| A page only needs data in **one place** | Fetch right there, keep it simple |
+| You're passing the same prop through **3+ layers** | Fetch closer to where it's used |
+
+> ⚠️ **Warning:** Avoid fetching in a parent and passing a **huge** object through many layers "just in case." Each layer becomes coupled to the data's shape, and changing the query breaks them all.
+
+> ⚠️ **Warning:** Don't fetch data in **Client Components** with `useEffect` when a Server Component can do it (topic 18). Client-side fetching adds loading flashes and exposes your API shape.
+
+> ⚠️ **Warning:** `cache()` from React only dedupes **within a single request**. It is not a long-term cache. For data that persists across requests, use the Next.js caching tools (topics 36 and 39).
+
+> 🏆 **Golden Rule:** There's no universally correct answer, so optimize for **clarity first**. Start by fetching where the data is used. Move the fetch **up** only when sharing is needed, and wrap it in **`cache()`** when two components ask for the same thing.
