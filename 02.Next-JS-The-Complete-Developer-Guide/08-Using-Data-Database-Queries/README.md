@@ -453,3 +453,209 @@ This is the component-level version of the automatic `loading.tsx` spinner (topi
 > ⚠️ **Warning:** `cache()` from React only dedupes **within a single request**. It is not a long-term cache. For data that persists across requests, use the Next.js caching tools (topics 36 and 39).
 
 > 🏆 **Golden Rule:** There's no universally correct answer, so optimize for **clarity first**. Start by fetching where the data is used. Move the fetch **up** only when sharing is needed, and wrap it in **`cache()`** when two components ask for the same thing.
+
+
+## 👶 78. Data Fetching in Child Components
+
+**What it does:** Lets a **child component fetch its own data** from the database, instead of the page fetching everything and passing it down. The page only hands the child a small identifier (like a `slug` or an `id`), and the child does the rest.
+**Why it is used:** Each component becomes **self-contained**. You can drop `<PostList slug="javascript" />` onto any page and it just works, with no need to know what query feeds it. The page stays short, and each piece can load independently.
+**When to use it:** Sections of a page that are independent of each other: a post list, a comment section, a "top topics" sidebar.
+
+**Analogy:** A newspaper editor doesn't write every column. They assign sections: sports, weather, business. Each writer goes and gathers their own facts, and the editor just says "sports goes here." The child component is the section writer.
+
+**Step 1: The page stays thin and only passes an identifier:**
+```tsx
+// app/topics/[slug]/page.tsx
+import PostList from "@/components/posts/PostList";
+import PostCreateForm from "@/components/posts/PostCreateForm";
+
+export default async function TopicShowPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  return (
+    <div className="grid grid-cols-4 gap-4 p-4">
+      <div className="col-span-3">
+        <h1 className="text-2xl font-bold mb-2">{slug}</h1>
+        <PostList slug={slug} />
+      </div>
+      <div>
+        <PostCreateForm slug={slug} />
+      </div>
+    </div>
+  );
+}
+```
+
+**Step 2: The child is an `async` Server Component that fetches for itself:**
+```tsx
+// components/posts/PostList.tsx
+import Link from "next/link";
+import { db } from "@/lib/db";
+import paths from "@/paths";
+
+export default async function PostList({ slug }: { slug: string }) {
+  const posts = await db.post.findMany({
+    where: { topic: { slug } },
+    include: {
+      user: { select: { name: true } },
+      _count: { select: { comments: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (posts.length === 0) {
+    return <p>No posts yet. Be the first to write one!</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {posts.map((post) => (
+        <Link key={post.id} href={paths.postShow(slug, post.id)}>
+          <div className="border rounded p-2">
+            <h3 className="text-lg font-bold">{post.title}</h3>
+            <div className="flex gap-8">
+              <p className="text-xs text-gray-400">By {post.user.name}</p>
+              <p className="text-xs text-gray-400">{post._count.comments} comments</p>
+            </div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+```
+**Output:**
+```
+Visit /topics/javascript:
+
+  javascript
+  ┌──────────────────────────────────────┐
+  │ Hello World                          │
+  │ By Manuel        2 comments          │
+  └──────────────────────────────────────┘
+  ┌──────────────────────────────────────┐
+  │ Learning Server Components           │
+  │ By Manuel        0 comments          │
+  └──────────────────────────────────────┘
+```
+
+**Another example: the post page with two independent children:**
+```tsx
+// app/topics/[slug]/posts/[postId]/page.tsx
+import PostShow from "@/components/posts/PostShow";
+import CommentList from "@/components/comments/CommentList";
+
+export default async function PostShowPage({
+  params,
+}: {
+  params: Promise<{ slug: string; postId: string }>;
+}) {
+  const { postId } = await params;
+
+  return (
+    <div>
+      <PostShow postId={postId} />      {/* fetches the post itself */}
+      <CommentList postId={postId} />   {/* fetches the comments itself */}
+    </div>
+  );
+}
+```
+Each child only needs an `id`. The page doesn't know or care what queries they run.
+
+**What to pass down as props:**
+
+| Pass this | Not this |
+|---|---|
+| `slug`, `postId` (small identifiers) | A big pre-fetched object "just in case" |
+| Simple values the child can't get itself | The database client |
+| Plain serializable data | Functions or class instances (when the child is a Client Component) |
+
+**Why this works only in Server Components:** `async` components are a **Server Component** feature. A Client Component (`"use client"`) cannot be `async`. If a child needs both data **and** interactivity, split it:
+```tsx
+// Server Component: fetches
+export default async function LikeSection({ postId }: { postId: string }) {
+  const likes = await db.like.count({ where: { postId } });
+  return <LikeButton postId={postId} initialLikes={likes} />;
+}
+```
+```tsx
+// Client Component: interactive, receives plain data as props
+"use client";
+export default function LikeButton({ postId, initialLikes }: Props) { ... }
+```
+This is the server-inside-client pattern from topic 22, in reverse: the Server Component fetches, the Client Component handles clicks.
+
+**Child fetching vs. page fetching (summary of topic 77):**
+
+| | Child fetches | Page fetches and passes down |
+|---|---|---|
+| **Props needed** | A small id | The full data |
+| **Reusable on other pages?** | ✅ Easily | Only if the parent supplies the same shape |
+| **Loads independently?** | ✅ With `Suspense` | ❌ Page waits for everything |
+| **Duplicate queries?** | Possible (use `cache()`) | Rare |
+
+**Show a loading state for a slow child with `Suspense`:**
+```tsx
+import { Suspense } from "react";
+
+<h1>{slug}</h1>
+<Suspense fallback={<p>Loading posts...</p>}>
+  <PostList slug={slug} />
+</Suspense>
+```
+**Output:**
+```
+Instantly:   javascript
+             Loading posts...
+A moment later: javascript
+                [ the real post list streams in ]
+```
+The heading appears right away, and only the slow section waits.
+
+**The big gotcha: waterfalls (sequential fetching).** If a parent awaits something **before** rendering the child, the child's query doesn't start until the parent finishes:
+```tsx
+// ❌ Waterfall: child can't start until the parent's query is done
+export default async function Page({ params }: Props) {
+  const { slug } = await params;
+  const topic = await db.topic.findUnique({ where: { slug } }); // wait...
+  return <PostList slug={slug} />;                              // ...then this starts its own query
+}
+```
+```
+Time →  [ parent query ][ child query ] = slow
+```
+Fixes:
+```tsx
+// ✅ Fix 1: wrap the child in Suspense so it streams without blocking the parent
+// ✅ Fix 2: if the parent doesn't actually need the data, don't fetch it there
+// ✅ Fix 3: start both queries together with Promise.all (when both are needed in the parent)
+const [topic, posts] = await Promise.all([getTopic(slug), getPosts(slug)]);
+```
+```
+Time →  [ parent query ]
+        [ child query  ]   ← runs at the same time = faster
+```
+
+**Share a query between parent and child with `cache()`:** if the page *and* a child both need the same topic, wrap the query once so it only hits the database one time per request (topic 77):
+```tsx
+// lib/queries/topics.ts
+import { cache } from "react";
+
+export const getTopicBySlug = cache(async (slug: string) => {
+  return db.topic.findUnique({ where: { slug } });
+});
+```
+
+> ⚠️ **Warning:** Only **Server Components** can be `async` and query the database. Putting `"use client"` on a component that does `await db...` causes an error, and would also risk shipping database code to the browser.
+
+> ⚠️ **Warning:** Fetching in **many small children** can create **N+1 queries**: a list renders 50 items, and each item fetches its own author, making 51 queries. For lists, fetch the related data **once** with `include` (as `PostList` does with `user`) instead of per item.
+
+> ⚠️ **Warning:** Child fetching still obeys caching rules (topics 33 to 39). After a mutation, `revalidatePath` must cover the **page** the child lives on, or the child will show stale data.
+
+> ⚠️ **Warning:** Always handle the **empty case** (`posts.length === 0`) inside the child. A component that fetches for itself is responsible for what it shows when there's nothing to show.
+
+> 🏆 **Golden Rule:** Pass **identifiers down, not data**. Let each Server Component ask the database for exactly what it displays, use `include`/`select` to avoid per-item queries, wrap slow children in `Suspense`, and use `cache()` when two components need the same record.
