@@ -987,3 +987,358 @@ Pick **one prefix** and use it everywhere. Avoid starting names with `use` (like
 > ⚠️ **Warning:** Whatever style you choose, give list-returning functions an explicit return type (`Promise<PostListItem[]>`). It makes mismatches show up **in the query file**, not later in a component.
 
 > 🏆 **Golden Rule:** Pick **one** naming style, **one** way to derive types, and **one** query layout, then use them everywhere. Consistency matters more than which option you choose. When duplication starts to hurt, move to a **shared `include`** with `satisfies` and `PostGetPayload`.
+
+
+
+## ⚖️ 82. Don't Go Crazy With Reuse
+
+**What it does:** A reminder that **reusing code is a tool, not a goal**. Topics 79 to 81 showed how to make components and queries reusable, but if you push that too far, you end up with giant "do everything" components that are harder to understand than the duplicated code they replaced.
+**Why it is useful:** Every shared component creates a **dependency**. The more pages rely on it, the riskier it is to change, and the more props and flags it collects to cover everyone's special cases.
+**When to think about it:** Whenever you're about to merge two *similar-looking* components, or add a new prop to a shared one "just for this page."
+
+**Analogy:** A Swiss Army knife with 40 tools. It technically does everything, but it's awkward to hold, hard to find the right blade, and if one part breaks the whole thing is affected. Sometimes a plain knife **and** a plain screwdriver is better.
+
+**The warning sign: a component with too many switches**
+```tsx
+// ❌ One component trying to serve every page
+<PostList
+  fetchData={fetchTopPosts}
+  showAuthor={true}
+  showTopic={false}
+  showCommentCount={true}
+  compact={false}
+  showDeleteButton={isOwner}
+  showEditButton={isOwner}
+  emptyMessage="Nothing here"
+  layout="grid"
+  highlightFirst
+/>
+```
+Each boolean doubles the number of states the component can be in. Soon nobody remembers which combinations actually work.
+
+**Better: reuse the part that is truly identical, duplicate the rest**
+```tsx
+// ✅ Two small components that each do one job
+<PostList fetchData={() => fetchPostsByTopicSlug(slug)} />   // used on topic pages
+<ProfilePostTable fetchData={() => fetchPostsByUserId(id)} /> // used on profile pages
+```
+They may look a little alike, but they can now change **independently**.
+
+**How to decide whether to share:**
+
+| Question | If **yes** | If **no** |
+|---|---|---|
+| Is it the **same thing** (same purpose), not just a similar look? | Consider sharing | Keep separate |
+| Will a change to one **always** apply to the other? | Share | Keep separate |
+| Have you seen it **three times**? (the "rule of three") | Share | Wait and copy for now |
+| Can you describe the shared piece **without the word "and"/"or"**? | Share | It's doing too much, split it |
+| Does sharing need **more than 2 or 3 flags/props** to cover every case? | Don't share | Fine |
+
+**Duplication vs. wrong abstraction:**
+
+| | Duplicated code | A wrong shared abstraction |
+|---|---|---|
+| **Cost** | A bit more typing | Every change risks breaking other pages |
+| **Fixing it** | Easy, change one copy | Hard, you must untangle the flags first |
+| **Readability** | Each copy is simple | The shared one is full of `if (variant === ...)` |
+
+**Output (what happens when you over-share):**
+```
+"Just add one more prop..."   →   12 props, 3 hidden bugs   →   "Let's rewrite it from scratch"
+```
+
+**Good things to reuse vs. things to keep separate:**
+
+| ✅ Great to reuse | ⚠️ Usually keep separate |
+|---|---|
+| Buttons, inputs, popovers (UI primitives) | Page-specific layouts |
+| `FormButton` with `useFormStatus` (topic 69) | Forms with different fields and rules |
+| `paths.ts` helpers (topic 49) | Server Actions for different entities |
+| Query functions with a shared `include` (topic 81) | Components that only *look* alike today |
+| The `FormState` shape (topic 65) | Business logic that may diverge later |
+
+**A Server Actions example:**
+```tsx
+// ❌ One action for everything
+export async function createThing(type: "topic" | "post" | "comment", formData: FormData) {
+  if (type === "topic") { ... }
+  if (type === "post") { ... }
+  if (type === "comment") { ... }
+}
+
+// ✅ Three small actions, each with its own schema, auth rules, and revalidation
+export async function createTopic(...) { ... }
+export async function createPost(...) { ... }
+export async function createComment(...) { ... }
+```
+Their validation, permissions, and `revalidatePath` targets all differ, so sharing them hides important differences.
+
+> ⚠️ **Warning:** Two things that **look** alike today may **change for different reasons** tomorrow. If they change for different reasons, they should be different code.
+
+> ⚠️ **Warning:** Adding a **boolean prop** to a shared component to special-case one page is the classic start of an over-reused component. Treat that as a signal to split, not to add another flag.
+
+> 🏆 **Golden Rule:** **Copy first, share later.** Wait until you've seen the same thing a third time, share only what is **genuinely identical**, and keep the differences outside the shared piece. A little duplication is cheaper than the wrong abstraction.
+
+---
+
+## 💬 83. Comment Creation
+
+**What it does:** Adds the ability to **write a comment on a post**, and to **reply to another comment**, which creates nested (threaded) conversations. It needs a `Comment` model, a Server Action, and a small form component.
+**Why it is used:** Comments are what turn a list of posts into a discussion. Replies are stored in the **same table**, with a `parentId` pointing to the comment being answered.
+**When to use it:** Once posts can be created and displayed (topics 73 to 78).
+
+**Analogy:** A comment thread is a family tree. A top-level comment has no parent. A reply points at its parent, and replies to replies point further down the tree, all stored in one list with a "who is my parent?" column.
+
+**Step 1: Add the model with a self-relation:**
+```prisma
+// prisma/schema.prisma
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  postId    String
+  userId    String
+  parentId  String?                 // null = top-level comment
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("Comments", fields: [parentId], references: [id], onDelete: Cascade)
+  children Comment[] @relation("Comments")
+}
+
+model Post {
+  // ...existing fields
+  comments Comment[]
+}
+
+model User {
+  // ...existing fields
+  comments Comment[]
+}
+```
+```bash
+npx prisma migrate dev --name add-comment
+```
+**Output:**
+```
+Applying migration `20260101_add_comment`
+✔ Generated Prisma Client
+```
+
+| Field | Meaning |
+|---|---|
+| `parentId` (optional) | `null` for a top-level comment, otherwise the id of the comment being replied to |
+| `parent` / `children` | Two sides of the same relation, named `"Comments"` so Prisma can tell them apart |
+| `onDelete: Cascade` | Deleting a post, user, or parent comment removes the related comments too |
+
+**Step 2: Write the Server Action.** It needs two extra values (`postId` and an optional `parentId`), passed with `.bind()` (topic 75):
+```tsx
+// actions/create-comment.ts
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import paths from "@/paths";
+
+const createCommentSchema = z.object({
+  content: z.string().min(3, "Comment must be at least 3 characters"),
+});
+
+interface CreateCommentFormState {
+  errors: {
+    content?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+export async function createComment(
+  { postId, parentId }: { postId: string; parentId?: string },
+  prevState: CreateCommentFormState,
+  formData: FormData
+): Promise<CreateCommentFormState> {
+  // 1. Validate
+  const result = createCommentSchema.safeParse({
+    content: formData.get("content"),
+  });
+
+  if (!result.success) {
+    return { errors: result.error.flatten().fieldErrors };
+  }
+
+  // 2. Authenticate
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { errors: { _form: ["You must be signed in to do this"] } };
+  }
+
+  // 3. Create the record
+  try {
+    await db.comment.create({
+      data: {
+        content: result.data.content,
+        postId,
+        parentId,                 // undefined for top-level comments
+        userId: session.user.id,  // from the server, never from the client
+      },
+    });
+  } catch (err) {
+    console.error("createComment failed:", err);
+    return { errors: { _form: ["Something went wrong. Please try again."] } };
+  }
+
+  // 4. Find the post's topic so we can refresh the right page
+  const topic = await db.topic.findFirst({
+    where: { posts: { some: { id: postId } } },
+  });
+
+  if (!topic) {
+    return { errors: { _form: ["Failed to revalidate topic"] } };
+  }
+
+  // 5. Refresh the cache. No redirect: the user stays on the same page
+  revalidatePath(paths.postShow(topic.slug, postId));
+  return { errors: {}, success: true };
+}
+```
+**Output:**
+```
+Signed-in user submits "Great post!" on post 42:
+  → row inserted:  { content: "Great post!", postId: "42", parentId: null, userId: "c9a..." }
+  → page /topics/javascript/posts/42 revalidated
+  → { errors: {}, success: true }
+
+Same user replies to comment 7:
+  → row inserted:  { content: "I agree", postId: "42", parentId: "7", userId: "c9a..." }
+```
+
+**Why no `redirect()` this time?** For a topic or post, the user moves to a **new page**. A comment appears on the **page they're already on**, so we revalidate and return `success: true` instead. The form uses that flag to reset itself.
+
+**Step 3: The form component:**
+```tsx
+// components/comments/CommentCreateForm.tsx
+"use client";
+
+import { useActionState, useEffect, useRef, useState } from "react";
+import { Textarea, Button } from "@heroui/react";
+import FormButton from "@/components/common/FormButton";
+import { createComment } from "@/actions/create-comment";
+
+interface CommentCreateFormProps {
+  postId: string;
+  parentId?: string;
+  startOpen?: boolean;
+}
+
+export default function CommentCreateForm({
+  postId,
+  parentId,
+  startOpen,
+}: CommentCreateFormProps) {
+  const [open, setOpen] = useState(startOpen);
+  const ref = useRef<HTMLFormElement | null>(null);
+
+  const [formState, action] = useActionState(
+    createComment.bind(null, { postId, parentId }),
+    { errors: {} }
+  );
+
+  // After a successful comment, clear the form and close the reply box
+  useEffect(() => {
+    if (formState.success) {
+      ref.current?.reset();
+      if (!startOpen) setOpen(false);
+    }
+  }, [formState, startOpen]);
+
+  const form = (
+    <form action={action} ref={ref}>
+      <div className="space-y-2 px-1">
+        <Textarea
+          name="content"
+          label="Reply"
+          placeholder="Enter your comment"
+          isInvalid={!!formState.errors.content}
+          errorMessage={formState.errors.content?.join(", ")}
+        />
+
+        {formState.errors._form ? (
+          <div className="p-2 bg-red-200 border rounded border-red-400">
+            {formState.errors._form.join(", ")}
+          </div>
+        ) : null}
+
+        <FormButton>Create Comment</FormButton>
+      </div>
+    </form>
+  );
+
+  return (
+    <div>
+      <Button size="sm" variant="light" onPress={() => setOpen(!open)}>
+        Reply
+      </Button>
+      {open && form}
+    </div>
+  );
+}
+```
+
+**Step 4: Use it on the post page:**
+```tsx
+// Top-level comment box, always open
+<CommentCreateForm postId={postId} startOpen />
+
+// Reply box under a single comment, toggled by the Reply button
+<CommentCreateForm postId={comment.postId} parentId={comment.id} />
+```
+**Output:**
+```
+[ Reply ]   → click → textarea appears
+Submit      → button shows a spinner (topic 69)
+Success     → textarea clears, reply box closes, new comment appears in the list
+Error       → red message under the textarea, or in the general error box
+```
+
+**How the pieces connect:**
+
+| Piece | Job |
+|---|---|
+| `Comment` model + `parentId` | Stores comments and who each one replies to |
+| `createComment.bind(null, { postId, parentId })` | Pre-fills the extra arguments (topic 75) |
+| `useActionState` | Receives the validation errors and the `success` flag |
+| `useRef` + `ref.current?.reset()` | Clears the textarea after a successful submit |
+| `useEffect` watching `formState` | Runs the reset **after** the action succeeds |
+| `revalidatePath(...)` | Makes the new comment show up on the page |
+
+**Order of work inside the action:**
+
+| Step | Why it comes here |
+|---|---|
+| 1. Validate | Cheapest check, reject bad input first |
+| 2. Authenticate | The user id must come from `auth()` |
+| 3. Create | `try/catch`, returns a generic `_form` error on failure |
+| 4. Find the topic slug | Needed to build the path to revalidate |
+| 5. Revalidate + return `success` | No redirect, because the page doesn't change |
+
+**Quick test checklist:**
+- [ ] Submit an empty or 1-letter comment → field error appears
+- [ ] Submit while signed out → "You must be signed in" appears
+- [ ] Submit a valid top-level comment → it appears and the box clears
+- [ ] Click **Reply** on a comment and submit → the new row has the right `parentId` (check with `npx prisma studio`)
+- [ ] Open the page in a production build (`npm run build && npm start`) and confirm the comment still shows up (topic 57)
+
+> ⚠️ **Warning:** `postId` and `parentId` come through the browser, so treat them as **untrusted** (topic 75). A stricter version of the action should confirm the post exists, and that `parentId` (if given) belongs to the **same post**, before saving.
+
+> ⚠️ **Warning:** **Never take `userId` from the form or from `.bind()`.** Always read it from `auth()` so nobody can post as someone else (topic 74).
+
+> ⚠️ **Warning:** Because this form doesn't redirect, the **`success` flag stays `true`** in state until the next submission. Make sure the `useEffect` only resets things when it's relevant, and don't show a permanent "Saved!" message based on it alone.
+
+> ⚠️ **Warning:** `revalidatePath` needs the **same path the page was rendered at**. If your post route is `/topics/[slug]/posts/[postId]`, the helper must build exactly that path, which is why we look up the topic slug first.
+
+> ⚠️ **Version note:** Calling `ref.current?.reset()` works with the React 19 behavior where uncontrolled forms reset automatically after an action. If you see inputs clearing when there are **errors**, or **not** clearing on success, return the submitted values in state and use `defaultValue` (topic 63). The `Prisma`/client import path may also differ in newer Prisma versions (topic 76).
+
+> 🏆 **Golden Rule:** A reply is just a comment with a **`parentId`**. One model, one action, one form component handle both top-level comments and replies. Keep it that way, and only split them apart if their rules truly start to differ (topic 82).
