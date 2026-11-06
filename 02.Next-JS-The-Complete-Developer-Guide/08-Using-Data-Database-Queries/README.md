@@ -709,3 +709,281 @@ export const getTopicBySlug = cache(async (slug: string) => {
 > ⚠️ **Warning:** Each query function runs **every time it is called**. `cache()` only dedupes inside one request. It does not replace Next.js caching or `revalidatePath` (topics 36 and 53).
 
 > 🏆 **Golden Rule:** **Queries live in one folder, types are derived from them, components stay generic, and pages choose what to show.** If you change the data a list needs, you edit one query file and the types follow automatically.
+
+
+## 🧑‍🍳 80. Define in Parent, Fetch in Child
+
+**What it does:** The **parent** (the page) decides *which* query to run and wraps it in a small function. The **child** (a reusable component) receives that function and is the one that actually calls it and awaits the result.
+**Why it is used:** The page knows the context (which topic, which search term), and the child knows how to display the data. Splitting "what to fetch" from "when to fetch" gives you reusable components, and it lets the page return immediately so `Suspense` can stream the child in.
+**When to use it:** Any reusable list or detail component that appears on several pages with different data sources.
+
+**Analogy:** A manager hands a cook a **ticket** that says "make the soup of the day." The manager decided *what* to make, but the cook does the actual cooking, and the manager is free to greet the next customer instead of standing at the stove.
+
+**The three ways to split the work:**
+
+| Pattern | Who defines the query | Who runs it | Result |
+|---|---|---|---|
+| **Define and fetch in parent** | Page | Page | Page blocks until the data is ready, child just displays |
+| **Define and fetch in child** | Child | Child | Child is self-contained but tied to one query |
+| **Define in parent, fetch in child** ⭐ | Page | Child | Reusable child, and the page doesn't block |
+
+**Step 1: The child accepts a function, not data:**
+```tsx
+// components/posts/PostList.tsx
+import type { PostWithData } from "@/db/queries/posts";
+
+interface PostListProps {
+  fetchData: () => Promise<PostWithData[]>;
+}
+
+export default async function PostList({ fetchData }: PostListProps) {
+  const posts = await fetchData();   // ← the child runs the query
+
+  return (
+    <div>
+      {posts.map((post) => (
+        <h3 key={post.id}>{post.title}</h3>
+      ))}
+    </div>
+  );
+}
+```
+
+**Step 2: Each page defines the query it wants:**
+```tsx
+// app/topics/[slug]/page.tsx
+import { Suspense } from "react";
+import PostList from "@/components/posts/PostList";
+import { fetchPostsByTopicSlug } from "@/db/queries/posts";
+
+export default async function TopicShowPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  return (
+    <Suspense fallback={<p>Loading posts...</p>}>
+      <PostList fetchData={() => fetchPostsByTopicSlug(slug)} />
+    </Suspense>
+  );
+}
+```
+```tsx
+// app/page.tsx (no arguments needed, so pass the function itself)
+<PostList fetchData={fetchTopPosts} />
+```
+**Output:**
+```
+/topics/javascript
+  → page returns instantly, "Loading posts..." shows
+  → PostList calls fetchPostsByTopicSlug("javascript") and streams the posts in
+
+/
+  → PostList calls fetchTopPosts() and shows the top 5 posts
+```
+
+**The closure trick: `() => fetchPostsByTopicSlug(slug)`**
+The arrow function **remembers `slug`** from the page. The child just calls `fetchData()` with no arguments and never needs to know a slug exists.
+
+| What you write | What it means |
+|---|---|
+| `fetchData={fetchTopPosts}` | Pass the function **itself** (no parentheses). The child calls it later |
+| `fetchData={() => fetchPostsByTopicSlug(slug)}` | Wrap it in an arrow so it has the `slug` baked in |
+| `fetchData={fetchPostsByTopicSlug(slug)}` ❌ | **Calls it immediately** and passes a Promise, which doesn't match the `() => Promise` type |
+
+**Why not just fetch in the parent and pass the result?**
+```tsx
+// ❌ The page awaits first, so nothing renders until the query finishes
+const posts = await fetchPostsByTopicSlug(slug);
+return <PostList posts={posts} />;
+```
+```
+Time →  [ page waits for query ][ page renders ]   = user stares at a blank page
+```
+```tsx
+// ✅ The page returns right away, the child waits inside Suspense
+return (
+  <Suspense fallback={<p>Loading...</p>}>
+    <PostList fetchData={() => fetchPostsByTopicSlug(slug)} />
+  </Suspense>
+);
+```
+```
+Time →  [ page renders instantly ]
+                 [ child query runs, streams in ]
+```
+
+**When this pattern is NOT the right choice:**
+
+| Situation | Better choice |
+|---|---|
+| Only **one** page ever shows this component | Fetch inside the child directly, it's simpler |
+| The **parent also needs** the data (for a heading, a `notFound()` check) | Fetch in the parent, use `cache()` so the child doesn't repeat the query (topic 77) |
+| The child is a **Client Component** | Fetch in a Server Component and pass the plain result as props |
+
+> ⚠️ **Warning:** **Functions can't be passed to Client Components.** `fetchData` only works when both the page and `PostList` are **Server Components**. If the child has `"use client"`, you'll get a serialization error.
+
+> ⚠️ **Warning:** Passing the function **with parentheses** (`fetchData={fetchTopPosts()}`) runs the query in the parent and hands over a Promise, which breaks the types and defeats the whole point.
+
+> ⚠️ **Warning:** The child owns its own **empty and error states**. The page can't check `posts.length` because it never sees the data.
+
+> 🏆 **Golden Rule:** The parent says **what**, the child does **how and when**. The page passes a function that already knows its arguments, and the child just calls it.
+
+---
+
+## 🏷️ 81. Alternative Type Names and Query Definitions
+
+**What it does:** Shows other good ways to **name** the types your queries produce, **derive** those types, and **organize** the query functions themselves. Topic 79 showed one recommended approach, but several valid alternatives exist, each with different trade-offs.
+**Why it is useful:** You'll see all of these styles in tutorials and real codebases. Knowing the options lets you recognize them and pick the one that suits your project's size.
+**When to use it:** When topic 79's pattern starts to feel repetitive (the same `include` copied into three queries), or when type names stop being descriptive.
+
+**Analogy:** The same recipe can be written as a numbered list, a paragraph, or a photo guide. The dish doesn't change, only how easy it is to follow and update.
+
+### Part A: Choosing type names
+
+**Name types by their purpose or their shape, and stay consistent.**
+
+| Style | Example | Good for |
+|---|---|---|
+| By shape | `PostWithData` | Short and generic, fine for small apps |
+| By what it includes | `PostWithTopicAndUser` | Very explicit, but long and it changes when the query changes |
+| By purpose | `PostListItem`, `PostSummary` | Describes **where it's used**, stays stable as fields change |
+| By detail level | `PostDetail` (full) vs `PostPreview` (card) | Apps with both list cards and full pages |
+
+**Output (the same type under different names):**
+```
+PostWithData   = Post + { topic, user, _count }
+PostListItem   = Post + { topic, user, _count }   ← same shape, clearer purpose
+```
+
+> **Tip:** `PostListItem` is usually the best default. When you later add a `PostDetail` type with comments included, the names make the difference obvious.
+
+### Part B: Alternative ways to derive the type
+
+**Option 1: infer it from the function (topic 79)**
+```tsx
+export type PostListItem = Awaited<ReturnType<typeof fetchPostsByTopicSlug>>[number];
+```
+Zero extra code, but each query has its own separate type.
+
+**Option 2: share one `include` and use Prisma's payload helper**
+```tsx
+// db/queries/posts.ts
+import { Prisma } from "@prisma/client";
+import { db } from "@/db";
+
+// One definition of "what a list item contains"
+const postListInclude = {
+  topic: { select: { slug: true } },
+  user: { select: { name: true } },
+  _count: { select: { comments: true } },
+} satisfies Prisma.PostInclude;
+
+// The type comes from that same definition
+export type PostListItem = Prisma.PostGetPayload<{
+  include: typeof postListInclude;
+}>;
+
+// Every query reuses it, so they can never disagree
+export function fetchPostsByTopicSlug(slug: string): Promise<PostListItem[]> {
+  return db.post.findMany({
+    where: { topic: { slug } },
+    include: postListInclude,
+  });
+}
+
+export function fetchTopPosts(): Promise<PostListItem[]> {
+  return db.post.findMany({
+    orderBy: [{ comments: { _count: "desc" } }],
+    include: postListInclude,
+    take: 5,
+  });
+}
+```
+**Output:**
+```
+fetchPostsByTopicSlug → PostListItem[]
+fetchTopPosts         → PostListItem[]   ← identical shape, defined once
+```
+This removes the copy-pasted `include` block from topic 79. Change `postListInclude` once and **every query and the type update together**.
+
+**Option 3: write the type by hand**
+```tsx
+export type PostListItem = Post & {
+  topic: { slug: string };
+  user: { name: string | null };
+  _count: { comments: number };
+};
+```
+Simplest to read, but it can **drift** out of date if you change the query and forget the type.
+
+**Comparing the options:**
+
+| Option | Stays in sync automatically? | Reuses one `include`? | Complexity |
+|---|---|---|---|
+| 1. `Awaited<ReturnType<...>>[number]` | ✅ Yes | ❌ No | Low |
+| 2. `Prisma.PostGetPayload` + shared `include` | ✅ Yes | ✅ Yes | Medium |
+| 3. Hand-written type | ❌ No | ❌ No | Lowest |
+
+> ⚠️ **Warning:** Use **`satisfies Prisma.PostInclude`**, not a type annotation (`const postListInclude: Prisma.PostInclude = {...}`). An annotation **widens** the type, so Prisma no longer knows which fields you included and the payload type loses them. `satisfies` checks the object is valid **while keeping its exact shape**.
+
+> ⚠️ **Version note:** Older Prisma tutorials use `Prisma.validator<Prisma.PostInclude>()({...})` for the same job. `satisfies` (TypeScript 4.9+) is the simpler modern equivalent. Also, with newer Prisma versions (including 7) the client may be generated into a custom folder, so import `Prisma` from **that generated path** if `@prisma/client` doesn't export it. Check the [Prisma docs](https://www.prisma.io/docs) for your version.
+
+### Part C: Alternative ways to define the queries
+
+**Style 1: one exported function per query (topic 79)**
+```tsx
+export function fetchTopPosts() { ... }
+export function fetchPostsBySearchTerm(term: string) { ... }
+```
+Easy to import only what you need.
+
+**Style 2: arrow-function constants**
+```tsx
+export const fetchTopPosts = () =>
+  db.post.findMany({ include: postListInclude, take: 5 });
+```
+Shorter for one-liners. Functionally the same.
+
+**Style 3: group queries in one object**
+```tsx
+export const postQueries = {
+  byTopicSlug: (slug: string) =>
+    db.post.findMany({ where: { topic: { slug } }, include: postListInclude }),
+  top: () =>
+    db.post.findMany({ orderBy: [{ comments: { _count: "desc" } }], include: postListInclude, take: 5 }),
+  search: (term: string) =>
+    db.post.findMany({ where: { title: { contains: term } }, include: postListInclude }),
+};
+
+// Usage
+<PostList fetchData={() => postQueries.byTopicSlug(slug)} />
+<PostList fetchData={postQueries.top} />
+```
+Reads nicely (`postQueries.top`) and groups related queries, but you import the whole object.
+
+**Style 4: one file per entity vs. one file per query**
+
+| Layout | Example | Best for |
+|---|---|---|
+| One file per **entity** | `queries/posts.ts`, `queries/topics.ts` | Most apps, easy to find things |
+| One file per **query** | `queries/posts/fetch-top-posts.ts` | Very large codebases |
+| A single `queries.ts` | Everything together | Tiny demos only |
+
+**Naming the functions:**
+
+| Prefix | Reads as | Notes |
+|---|---|---|
+| `fetch...` | `fetchTopPosts()` | Used throughout these notes |
+| `get...` | `getTopPosts()` | Equally common, just pick one |
+| `find...` | `findPostById()` | Often matches Prisma's own `findUnique`/`findMany` |
+
+Pick **one prefix** and use it everywhere. Avoid starting names with `use` (like `usePosts`), because React treats `use...` names as hooks.
+
+> ⚠️ **Warning:** Query files must **not** start with `"use server"`. That directive turns every exported function into a publicly callable Server Action. Queries are internal helpers, and mutations belong in `actions/` (topics 73 to 76).
+
+> ⚠️ **Warning:** Whatever style you choose, give list-returning functions an explicit return type (`Promise<PostListItem[]>`). It makes mismatches show up **in the query file**, not later in a component.
+
+> 🏆 **Golden Rule:** Pick **one** naming style, **one** way to derive types, and **one** query layout, then use them everywhere. Consistency matters more than which option you choose. When duplication starts to hurt, move to a **shared `include`** with `satisfies` and `PostGetPayload`.
