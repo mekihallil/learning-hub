@@ -4,7 +4,6 @@ import PostShow from "@/components/post/postShow";
 import CommentList from "@/components/comments/commentList";
 import CommentCreateForm from "@/components/comments/commentCreateForm";
 import { Suspense } from "react";
-import fetchCommentsByPostId from "@/app/db/query/comment";
 
 interface PostShowPageProps {
   params: Promise<{ slug: string; postId: string }>;
@@ -20,7 +19,7 @@ async function PostTitle({ params }: PostShowPageProps) {
       </Link>
       <PostShow postId={postId} />
       <CommentCreateForm postId={postId} startOpen />
-      <CommentList fetchData={() => fetchCommentsByPostId(postId)} />
+      <CommentList postId={postId} />
     </div>
   );
 }
