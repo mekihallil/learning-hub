@@ -203,3 +203,187 @@ Each page load gets its own fresh result, which is exactly what keeps data from 
 > ⚠️ **Version note:** `cache()` from `react` is the established approach for deduping non-`fetch` work. Newer Next.js versions are adding extra caching APIs (such as the `use cache` directive), and the `log: ["query"]` Prisma option can differ slightly in newer Prisma versions (including 7, which may need a driver adapter configured). Check the [Next.js caching docs](https://nextjs.org/docs/app/guides/caching) and the [Prisma docs](https://www.prisma.io/docs) for your versions.
 
 > 🏆 **Golden Rule:** **Fetch where it's used, dedupe with `cache()`.** Keep each component self-contained, wrap shared **read** queries in `cache()`, pass **strings and numbers** as arguments, and confirm in the terminal that each query prints **once** per page load.
+
+
+
+## 🧠 88. Request Memoization
+
+**What it does:** While Next.js renders **one page request** on the server, identical `fetch()` calls are **automatically merged into one**. The first call goes to the network, and every later call with the same URL and options gets the same result back.
+**Why it is used:** In the App Router, many components fetch their own data (topics 78 to 80). Without memoization, a layout, a page, and three children could all request the same URL and hit the server five times.
+**When to use it:** You don't turn it on, it's automatic. You just need to know it exists so you can fetch **where the data is used** without worrying about duplicates.
+
+**Analogy:** A waiter takes the same drink order from three people at one table. Instead of making three trips to the bar, they make **one trip** and hand out the same drink. When the table is cleared (the request ends), the waiter forgets the order.
+
+**Example: three components, one network request:**
+```tsx
+async function getUser() {
+  const res = await fetch("https://api.example.com/user/1");
+  return res.json();
+}
+
+// layout.tsx           → await getUser()
+// page.tsx             → await getUser()
+// components/Header    → await getUser()
+```
+**Output:**
+```
+Calls in the code:        3
+Real network requests:    1   ← the other two reuse the first result
+```
+
+**The rules:**
+
+| Question | Answer |
+|---|---|
+| What is memoized? | `fetch()` calls using the **GET** method |
+| What counts as "identical"? | Same URL **and** same options |
+| How long does it last? | One server render pass (one request), then it's discarded |
+| Shared between different users or requests? | ❌ No, every request starts fresh |
+| Works in Client Components? | ❌ No, it's a server-side React feature |
+
+**Request Memoization is not the Data Cache (topic 34):**
+
+| | Request Memoization | Data Cache |
+|---|---|---|
+| **Lasts** | One request | Across requests (and deploys) |
+| **Purpose** | Avoid duplicate calls **within** one render | Avoid refetching on **later** requests |
+| **Controlled by** | React (automatic) | `cache`, `revalidate`, `revalidatePath` |
+| **Cleared by** | The request ending | Revalidation |
+
+**The big limitation: it only covers `fetch()`.** Prisma, SQL, and other database calls are **not** `fetch()`, so they are **not** memoized:
+```tsx
+// ❌ NOT deduplicated: this is Prisma, not fetch()
+const topic = await db.topic.findUnique({ where: { slug } }); // in the page
+const topic = await db.topic.findUnique({ where: { slug } }); // in a child
+```
+**Output:**
+```
+Calls in the code:        2
+Real database queries:    2   ← both run
+```
+That's exactly the problem topic 89 solves.
+
+**What can opt a `fetch()` out of memoization:**
+
+| Cause | Why |
+|---|---|
+| Different URL or different options | They're no longer "identical" |
+| Using `POST` (or any non-GET method) | Only GET is memoized |
+| Passing an `AbortController` `signal` | Aborting makes sharing unsafe |
+
+> ⚠️ **Warning:** Don't confuse memoization with persistent caching. It only prevents duplicates **inside one render**. The next visitor's request fetches again, unless the Data Cache (topics 34 and 36) applies.
+
+> ⚠️ **Warning:** Memoization doesn't make `fetch` calls cheaper to **write** badly. If two components need the same data, it's fine to fetch in both, but if the **options differ even slightly** (different headers, different query string), you pay for two requests.
+
+> ⚠️ **Version note:** Caching defaults changed across Next.js 14, 15, and 16, but request memoization of identical GET `fetch()` calls in a single render has remained a React-level behavior. Always confirm against the [official caching docs](https://nextjs.org/docs/app/guides/caching) for your version.
+
+> 🏆 **Golden Rule:** For `fetch()`, relax and fetch where you need the data. Next.js merges the duplicates for you. For anything **not** `fetch()` (Prisma, SQL, SDKs), you must deduplicate yourself (topic 89).
+
+---
+
+## 🔁 89. Deduplicating Requests with `cache`
+
+**What it does:** React's `cache()` function wraps **any** async function (a Prisma query, an SDK call, a calculation) and remembers its result for the duration of one request. Calling it again with the **same arguments** returns the saved result instead of running the function again.
+**Why it is used:** Request memoization (topic 88) only covers `fetch()`. Prisma queries need a manual version of the same idea, so a page and its children can ask for the same record without hitting the database repeatedly.
+**When to use it:** Whenever **two or more components** in the same render need the same database result, such as the page needing a topic for a heading while a child needs it for permissions, or **every comment in a thread** asking for "the comments of this post" (topic 84).
+
+**Analogy:** A librarian keeps a sticky note on the desk: "Book 42, shelf C." The first time someone asks, the librarian walks to the shelf. The next person asking for book 42 gets the note instead. When the library closes (the request ends), the notes are thrown away.
+
+**Step 1: Wrap the query once, at module level:**
+```tsx
+// db/queries/topics.ts
+import { cache } from "react";
+import { db } from "@/db";
+
+export const fetchTopicBySlug = cache(async (slug: string) => {
+  console.log("DB QUERY: topic", slug);
+  return db.topic.findUnique({ where: { slug } });
+});
+```
+
+**Step 2: Call it from as many components as you like:**
+```tsx
+// app/topics/[slug]/page.tsx
+const topic = await fetchTopicBySlug(slug);
+if (!topic) notFound();
+
+// components/topics/TopicSidebar.tsx
+const topic = await fetchTopicBySlug(slug);   // reuses the first result
+```
+**Output (server terminal):**
+```
+DB QUERY: topic javascript      ← printed ONCE, even though two components asked
+```
+
+**Before and after, with the comment thread from topic 84:**
+```tsx
+// db/queries/comments.ts
+export const fetchCommentsByPostId = cache((postId: string) => {
+  return db.comment.findMany({
+    where: { postId },
+    include: { user: { select: { name: true, image: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+});
+```
+```
+Without cache():   CommentList + 20 CommentShow components = 21 queries
+With cache():      CommentList + 20 CommentShow components = 1 query
+```
+Every `CommentShow` can call `fetchCommentsByPostId(postId)` and simply pick out its own comment and replies, without extra database work.
+
+**How `cache()` decides two calls are "the same":**
+
+| Arguments | Same call? |
+|---|---|
+| `"javascript"` and `"javascript"` | ✅ Yes (primitives compare by **value**) |
+| `42` and `42` | ✅ Yes |
+| `"javascript"` and `"cooking"` | ❌ No, separate results |
+| `{ slug: "a" }` and `{ slug: "a" }` (two separate objects) | ❌ **No**, objects compare by **reference** |
+
+**Practical example: the object gotcha:**
+```tsx
+// ❌ Each call creates a NEW object, so cache never hits
+const getTopic = cache(async (opts: { slug: string }) => { ... });
+getTopic({ slug: "javascript" });
+getTopic({ slug: "javascript" });   // runs again
+
+// ✅ Use primitive arguments
+const getTopic = cache(async (slug: string) => { ... });
+getTopic("javascript");
+getTopic("javascript");             // reused
+```
+
+**Comparing the three tools you now know:**
+
+| | Request Memoization (topic 88) | `cache()` (this topic) | Data Cache (topic 34) |
+|---|---|---|---|
+| **Works on** | `fetch()` only | **Any** async function | `fetch()` (and Next.js caching APIs) |
+| **Setup needed** | None, automatic | Wrap the function | Options like `revalidate` |
+| **Lasts** | One request | One request | Across requests |
+| **Use it for** | Duplicate API calls | Duplicate **Prisma/SQL** calls | Data that can be reused between visitors |
+
+**Do you still need it for Prisma if you fetch only once?** No. If only one component ever calls the query, `cache()` changes nothing. Add it **when a second caller appears**.
+
+**Where to define cached functions:**
+```tsx
+// ✅ Module level (top of the file), created once
+export const fetchTopicBySlug = cache(async (slug: string) => { ... });
+
+// ❌ Inside a component, a brand new cache is created on every render, so nothing is shared
+export default async function Page() {
+  const fetchTopic = cache(async (slug: string) => { ... });
+}
+```
+
+> ⚠️ **Warning:** `cache()` works **only in Server Components** and **only for the current request**. It never shares results between users, which also makes it safe for per-user data.
+
+> ⚠️ **Warning:** It does **not** survive revalidation or the next request. It is not a replacement for Next.js caching (topics 36 and 39) or for `revalidatePath` after mutations (topic 53).
+
+> ⚠️ **Warning:** Use **primitive arguments** (strings, numbers) so the cache can recognize repeats. Passing a fresh object every time silently defeats it.
+
+> ⚠️ **Warning:** A cached function should be **read-only**. Don't wrap creates, updates, or deletes in `cache()`. Those are Server Actions (topics 73 to 76) and must run every time.
+
+> ⚠️ **Version note:** `cache` from `react` handles **per-request** deduplication. For **cross-request** caching of database results, Next.js offers separate APIs (`unstable_cache` in older versions, and newer caching directives in recent versions), and these have changed between releases. Check the [Next.js docs](https://nextjs.org/docs/app/guides/caching) for your version before relying on them. The `Prisma` client import path may also differ in newer Prisma versions (topic 76).
+
+> 🏆 **Golden Rule:** `fetch()` is deduplicated **for you**. Anything else (especially Prisma) needs **`cache()`**. Wrap each shared query **once, at module level, with primitive arguments**, and then call it freely from any component that needs it.
