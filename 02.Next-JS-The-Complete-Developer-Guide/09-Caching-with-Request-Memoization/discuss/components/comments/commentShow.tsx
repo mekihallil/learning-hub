@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import CommentCreateForm from "@/components/comments/commentCreateForm";
-import fetchCommentsByPostId from "@/app/db/query/comment";
+import { fetchCommentsByPostId } from "@/app/db/query/comment";
 
 interface CommentShowProps {
   commentId: string;

@@ -1,4 +1,4 @@
-import fetchCommentsByPostId from "@/app/db/query/comment";
+import {fetchCommentsByPostId} from "@/app/db/query/comment";
 import CommentShow from "@/components/comments/commentShow";
 
 interface CommentListProps {
