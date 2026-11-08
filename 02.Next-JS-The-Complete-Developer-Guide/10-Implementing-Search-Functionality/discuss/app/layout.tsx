@@ -4,6 +4,8 @@ import Providers from "./providers";
 import "./globals.css";
 import Header from "@/components/header";
 import { Suspense } from "react";
+import { auth } from "./auth";
+import { SessionProvider } from "next-auth/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +22,8 @@ export const metadata: Metadata = {
   description: "A discussion platform built with Next.js",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await auth();
   return (
     <html
       lang="en"
@@ -34,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             >
               <Header />
             </Suspense>
-            {children}
+            <SessionProvider session={session}>{children}</SessionProvider>
           </Providers>
         </div>
       </body>
