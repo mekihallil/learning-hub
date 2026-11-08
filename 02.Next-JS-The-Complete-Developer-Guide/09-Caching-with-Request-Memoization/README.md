@@ -387,3 +387,98 @@ export default async function Page() {
 > ⚠️ **Version note:** `cache` from `react` handles **per-request** deduplication. For **cross-request** caching of database results, Next.js offers separate APIs (`unstable_cache` in older versions, and newer caching directives in recent versions), and these have changed between releases. Check the [Next.js docs](https://nextjs.org/docs/app/guides/caching) for your version before relying on them. The `Prisma` client import path may also differ in newer Prisma versions (topic 76).
 
 > 🏆 **Golden Rule:** `fetch()` is deduplicated **for you**. Anything else (especially Prisma) needs **`cache()`**. Wrap each shared query **once, at module level, with primitive arguments**, and then call it freely from any component that needs it.
+
+
+## 🔂 90. Multiple Repeated DB Queries
+
+**What it does:** Explains the problem that appears when **many components each ask the database for the same thing**. Nothing looks broken, the page renders correctly, but behind the scenes the same query runs over and over.
+**Why it is useful:** Topics 78 to 80 encouraged fetching in child components. That's great for reusability, but it has a hidden cost. Repeated queries make pages slower, waste database capacity, and only show up as real pain once you have more data.
+**When to care:** Any page that renders **a list of components that each fetch for themselves**, such as a comment thread (topic 84), a post list, or a set of cards.
+
+**Analogy:** Ten cooks each walk to the pantry to get the same bag of flour, one after another. The kitchen works, but nine of those trips were wasted. One cook could have grabbed it once and shared.
+
+**Two different problems that look similar:**
+
+| Problem | What happens | Example |
+|---|---|---|
+| **Duplicate queries** | The **same** query runs many times | 20 comments each running `findMany({ where: { postId } })` |
+| **N+1 queries** | One query for a list, then **one more per item** | 1 query for 50 posts, then 50 queries for each post's author |
+
+| | Duplicate queries | N+1 queries |
+|---|---|---|
+| **Queries are** | Identical | Similar but with different ids |
+| **Best fix** | `cache()` (topic 89) | `include` / `select` in one query (topic 78) |
+| **Grows with** | Number of components | Number of rows |
+
+**Why it's easy to miss:**
+```
+Page still renders correctly           ✅
+No errors in the console               ✅
+Fast on your laptop with 5 comments    ✅
+Slow in production with 500 comments   ❌   ← the first time you notice
+
+**A simple checklist to find repeated queries:**
+
+| Question | If **yes** |
+|---|---|
+| Does a list component render children that each fetch? | Suspect duplicates or N+1 |
+| Is the same function called from the page **and** a child? | Wrap it in `cache()` |
+| Do queries inside a loop (`.map`) hit the database? | Move to one `include` query |
+| Does the terminal show the same SQL several times for one page load? | You have duplicates |
+
+> ⚠️ **Warning:** `cache()` fixes **duplicates** but does **not** fix **N+1**. Different arguments (a different id each time) are different cache entries, so each one still runs. Use `include` or `select` for that.
+
+> ⚠️ **Warning:** Don't turn on `log: ["query"]` in production. It's noisy and can expose query details in your logs. Use it while developing, or only behind an environment check.
+
+> 🏆 **Golden Rule:** **Measure before you optimize.** Turn on query logging, load the page once, and count. If you see the same statement repeated, deduplicate it. If you see one statement per row, use `include`.
+
+---
+
+
+
+## 🪞 91. Introducing Duplicate Queries
+
+**What it does:** Walks through a concrete example where duplicate queries happen **naturally**, in the nested comment thread, and then fixes them with `cache()` keyed on `postId` (topic 89).
+**Why it is used:** Seeing the problem happen in real code makes the fix obvious. It also shows that the duplication isn't caused by a mistake. It comes directly from a reasonable pattern: each comment component fetching what it needs.
+**When to use it:** As the demonstration step before applying `cache()` to any shared query.
+
+**Analogy:** A group of friends each looks up the same restaurant's opening hours on their own phone. Nobody did anything wrong, but one person could have looked it up and told everyone.
+
+
+``
+One query, however many components ask.
+
+```
+Before:  CommentList + 4 CommentShow = 5 queries
+After:   CommentList + 4 CommentShow = 1 query
+```
+
+**Why the cache key is `postId`:**
+- `cache()` compares **arguments**. Every component passes the same string, so every call after the first is a hit.
+- A **different post** has a different `postId`, so it gets its own query and result. Nothing is shared across posts.
+
+**Common mistakes that silently defeat the fix:**
+
+| Mistake | What goes wrong |
+|---|---|
+| Calling `db.comment.findMany` directly in one component | That component still queries on its own |
+| Creating `cache()` **inside** a component | A new cache is created on every render, so nothing is shared (topic 89) |
+| Passing an **object** like `fetchComments({ postId })` | Objects compare by reference, so each call looks different |
+| Slightly different queries in each component (a different `include`) | They are different queries, so they don't share a result |
+
+**The last row is the most common.** Define **one** query with **one** `include` that covers everything the thread needs, and have every component use it.
+
+**Quick verification checklist:**
+- [ ] Turn on `log: ["query"]` (topic 90)
+- [ ] Load a post with several nested replies
+- [ ] Count the `SELECT ... FROM "Comment"` lines in the terminal
+- [ ] You should see **exactly one**
+- [ ] Add a new reply, reload, and confirm the count is still one
+
+> ⚠️ **Warning:** `cache()` only deduplicates **within a single request**. The next page load runs the query once again, and that is expected. To avoid repeating it across visits, use Next.js caching (topics 36 and 39).
+
+> ⚠️ **Warning:** Don't reach for `cache()` before you've seen the duplicates. Turn on query logging, confirm the repeated lines, **then** apply the fix. Otherwise you're guessing (topic 82).
+
+> ⚠️ **Version note:** `cache` from `react` is a Server Component feature. The Prisma client setup and logging options may differ in newer Prisma versions (including 7), so verify against the [Prisma docs](https://www.prisma.io/docs) if your logs or imports don't match.
+
+> 🏆 **Golden Rule:** When a **list of components** each needs the **same data**, fetch it through **one cached function keyed on a simple id** (like `postId`). The components stay independent and reusable, and the database is asked only once.
