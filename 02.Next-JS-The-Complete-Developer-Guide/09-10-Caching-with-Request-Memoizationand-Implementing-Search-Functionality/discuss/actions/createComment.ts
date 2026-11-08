@@ -34,7 +34,8 @@ export async function createComment(
   }
 
   const session = await auth();
-  if (!session || !session.user) {
+
+  if (!session?.user?.id) {
     return {
       errors: {
         _form: ["You must sign in to do this."],
@@ -45,10 +46,10 @@ export async function createComment(
   try {
     await db.comment.create({
       data: {
-        content: result.data.content || "",
-        postId: postId || "",
-        parentId: parentId || "",
-        userId: session.user.id || "",
+        content: result.data.content,
+        postId,
+        parentId: parentId || null,
+        userId: session.user.id,
       },
     });
   } catch (err) {
@@ -58,17 +59,21 @@ export async function createComment(
           _form: [err.message],
         },
       };
-    } else {
-      return {
-        errors: {
-          _form: ["Something went wrong..."],
-        },
-      };
     }
+
+    return {
+      errors: {
+        _form: ["Something went wrong..."],
+      },
+    };
   }
 
   const topic = await db.topic.findFirst({
-    where: { posts: { some: { id: postId } } },
+    where: {
+      posts: {
+        some: { id: postId },
+      },
+    },
   });
 
   if (!topic) {
