@@ -1,6 +1,6 @@
-import { Input } from "@heroui/react";
 import Link from "next/link";
 import HeaderAuth from "./headerAuth";
+import SearchInput from "./searchInput";
 
 export default async function Header() {
   return (
@@ -10,7 +10,7 @@ export default async function Header() {
           Discuss
         </Link>
         <div className="w-full max-w-md">
-          <Input placeholder="Search discussions..." />
+          <SearchInput />
         </div>
         <div className="shrink-0">
           <HeaderAuth />
