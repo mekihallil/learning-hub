@@ -251,9 +251,9 @@ A few principles guide how I approach this journey:
 | 11 | Git | Tools | ✅ Completed |
 | 12 | GitHub Mastery | Tools | ✅ Completed |
 | 13 | Next.js | Framework | ✅ Completed |
-| 15 | PostgreSQL | Database | 🔄 In Progress |
-| 16 | Prisma | Database | ⏳ Planned |
-| 14 | NestJS | Framework | ⏳ Planned |
+| 14 | PostgreSQL | Database | 🔄 In Progress |
+| 15 | Prisma | Database | ⏳ Planned |
+| 16 | NestJS | Framework | ⏳ Planned |
 | 17 | Docker | DevOps | ⏳ Planned |
 | 18 | Deployment | DevOps | ⏳ Planned |
 | 19 | CI/CD | DevOps | ⏳ Planned |
