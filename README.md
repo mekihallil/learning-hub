@@ -64,10 +64,10 @@ Back-End Foundations
 Version Control Mastery   
         │
         ▼
-Databases & ORMs
+Databases & ORMs        ← currently here
         │
         ▼
-Full-Stack Frameworks      ← currently here
+Full-Stack Frameworks      
         │
         ▼
 DevOps & Deployment
@@ -87,7 +87,7 @@ current one — not just recognize the syntax.
 organizations, permissions, and real team workflows)
 
 ```
-Progress: [██████████████░░░░░░░░░░] 11 / 21 topics completed (49%)
+Progress: [███████████████░░░░░░░░░] 12 / 21 topics completed (57%)
 ```
 
 | Stage | Status |
@@ -95,8 +95,8 @@ Progress: [██████████████░░░░░░░░░
 | Front-End Foundations | ✅ Completed |
 | Back-End Foundations | ✅ Completed |
 | Git & GitHub | ✅ Completed  |
-| Databases & ORMs | ⏳ Upcoming |
-| Full-Stack Frameworks | 🔄 In Progress |
+| Databases & ORMs | 🔄 In Progress |
+| Full-Stack Frameworks | ⏳ Upcoming|
 | DevOps & Deployment | ⏳ Upcoming |
 | Testing | ⏳ Upcoming |
 
@@ -119,7 +119,7 @@ Progress: [██████████████░░░░░░░░░
 ### 🗄️ Databases
 - [x] MongoDB
 - [x] Mongoose
-- [ ] PostgreSQL
+- [ ] PostgreSQL(in progress)
 - [ ] Prisma
 
 ### 🔧 Version Control & Collaboration
@@ -127,7 +127,7 @@ Progress: [██████████████░░░░░░░░░
 - [x] GitHub Mastery 
 
 ### 🏗️ Full-Stack Frameworks
-- [ ] Next.j(in progress)
+- [x] Next.j
 - [ ] NestJS
 
 ### 🚀 DevOps & Deployment
@@ -149,10 +149,10 @@ Progress: [██████████████░░░░░░░░░
 learning-journey/
 │
 ├── 01-git-github/          
-├── 02-nextjs/              👈 current focus
-├── 03-nestjs/
-├── 04-postgresql/
-├── 05-prisma/
+├── 02-nextjs/              
+├── 03-postgresql/     👈 current focus
+├── 04-prisma/
+├── 05-nestjs/
 ├── 06-docker/
 ├── 07-deployment/
 ├── 08-ci-cd/
@@ -184,7 +184,7 @@ in-progress code, comments to self, and iterative improvement.
 ## 🧰 Technologies
 
 ### Frontend
-`HTML` `CSS` `Tailwind CSS` `JavaScript` `TypeScript` `React`
+`HTML` `CSS` `Tailwind CSS` `JavaScript` `TypeScript` `React` `NextJS`
 
 ### Backend
 `Node.js` `Express.js` `NestJS (upcoming)`
@@ -224,7 +224,7 @@ A few principles guide how I approach this journey:
 
 ## 🎯 Goals
 
-- [ ] Master Git & GitHub workflows used in real engineering teams
+- [x] Master Git & GitHub workflows used in real engineering teams
 - [ ] Build and deploy a full-stack app with a PostgreSQL + Prisma backend
 - [ ] Build a production-style app using Next.js and NestJS together
 - [ ] Containerize an application with Docker and ship a basic CI/CD pipeline
@@ -250,10 +250,10 @@ A few principles guide how I approach this journey:
 | 10 | Mongoose | Database | ✅ Completed |
 | 11 | Git | Tools | ✅ Completed |
 | 12 | GitHub Mastery | Tools | ✅ Completed |
-| 13 | Next.js | Framework | 🔄 In Progress |
-| 14 | NestJS | Framework | ⏳ Planned |
-| 15 | PostgreSQL | Database | ⏳ Planned |
+| 13 | Next.js | Framework | ✅ Completed |
+| 15 | PostgreSQL | Database | 🔄 In Progress |
 | 16 | Prisma | Database | ⏳ Planned |
+| 14 | NestJS | Framework | ⏳ Planned |
 | 17 | Docker | DevOps | ⏳ Planned |
 | 18 | Deployment | DevOps | ⏳ Planned |
 | 19 | CI/CD | DevOps | ⏳ Planned |
