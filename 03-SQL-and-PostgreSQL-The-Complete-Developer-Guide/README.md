@@ -616,3 +616,115 @@ FROM phones;
 > ⚠️ **Warning:** Very large totals can overflow `INTEGER` (the limit is about 2.1 billion). Use `BIGINT` for big revenue figures.
 
 > 🏆 **Golden Rule:** If a value can be **derived** from other columns, **derive it in the query**. Store only the original facts.
+
+
+
+## 🔤 9. String Operators and Functions
+
+**What it does:** Operators and functions that **join, change, and measure text** inside a `SELECT`: `||`, `CONCAT()`, `LOWER()`, `UPPER()`, and `LENGTH()`.
+**Why it is used:** Stored data is rarely in the exact shape you want to display. These tools build labels, normalize casing, and check lengths without changing the stored data.
+**When to use it:** Building display names, searching case-insensitively, validating or reporting text length.
+
+**Analogy:** A label maker for your data. It prints a new, nicely formatted label, while the original item on the shelf stays untouched.
+
+**Join text with `||`:**
+```sql
+SELECT name || ', ' || country AS location
+FROM cities;
+```
+**Output:**
+```
+     location
+-------------------
+ Tokyo, Japan
+ Delhi, India
+ Shanghai, China
+ Sao Paulo, Brazil
+(4 rows)
+```
+
+**Join text with `CONCAT()`:**
+```sql
+SELECT CONCAT(name, ', ', country) AS location
+FROM cities;
+```
+**Output:** same result as above.
+
+**Change case with `UPPER()` and `LOWER()`:**
+```sql
+SELECT UPPER(country) AS country_upper, LOWER(name) AS name_lower
+FROM cities;
+```
+**Output:**
+```
+ country_upper | name_lower
+---------------+------------
+ JAPAN         | tokyo
+ INDIA         | delhi
+ CHINA         | shanghai
+ BRAZIL        | sao paulo
+(4 rows)
+```
+
+**Count characters with `LENGTH()`:**
+```sql
+SELECT name, LENGTH(name) AS name_length
+FROM cities;
+```
+**Output:**
+```
+   name    | name_length
+-----------+-------------
+ Tokyo     |           5
+ Delhi     |           5
+ Shanghai  |           8
+ Sao Paulo |           9
+(4 rows)
+```
+
+**Combine functions (inner ones run first):**
+```sql
+SELECT UPPER(CONCAT(name, ', ', country)) AS label
+FROM cities;
+```
+**Output:**
+```
+       label
+-------------------
+ TOKYO, JAPAN
+ DELHI, INDIA
+ SHANGHAI, CHINA
+ SAO PAULO, BRAZIL
+(4 rows)
+```
+
+**Quick reference:**
+
+| Tool | What it does | Example | Result |
+|---|---|---|---|
+| `\|\|` | Joins text | `'a' \|\| 'b'` | `ab` |
+| `CONCAT(a, b, ...)` | Joins any number of values | `CONCAT('a', 'b', 'c')` | `abc` |
+| `LOWER(text)` | All lowercase | `LOWER('Tokyo')` | `tokyo` |
+| `UPPER(text)` | All uppercase | `UPPER('Tokyo')` | `TOKYO` |
+| `LENGTH(text)` | Number of characters | `LENGTH('Tokyo')` | `5` |
+
+**`||` vs `CONCAT()`:**
+
+| | `\|\|` | `CONCAT()` |
+|---|---|---|
+| **Syntax** | Between values | Function with a list |
+| **If a value is `NULL`** | The **whole result becomes `NULL`** | `NULL` is **ignored** |
+| **Joining numbers** | Can need a cast | Handles numbers directly |
+
+```sql
+SELECT 'Tokyo' || NULL;        -- result: NULL
+SELECT CONCAT('Tokyo', NULL);  -- result: Tokyo
+```
+
+> ⚠️ **Warning:** These functions change only the **output**. The stored values in the table are not modified.
+
+> ⚠️ **Warning:** A single `NULL` in a `||` chain turns the **entire result into `NULL`**. Use `CONCAT()` when a column might be empty.
+
+> ⚠️ **Warning:** Text literals use **single quotes** (`', '`). Double quotes would be read as a column name (topic 5).
+
+> 🏆 **Golden Rule:** Use `CONCAT()` when values might be `NULL`, and `LOWER()`/`UPPER()` to compare text without worrying about capitalization. Other handy text functions exist too (`SUBSTRING`, `REPLACE`, `TRIM`), and you can add them as you meet them.
