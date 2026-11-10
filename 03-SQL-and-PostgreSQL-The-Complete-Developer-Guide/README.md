@@ -162,3 +162,85 @@ comments: one row = one comment on one photo
 > ⚠️ **Warning:** Don't store several values in one column (like a comma-separated list of tags). Searching and updating them later becomes very painful. Give them their own rows or table instead.
 
 > 🏆 **Golden Rule:** **Nouns become tables, facts become columns.** Sketch the tables on paper first, and only write SQL once the sketch makes sense.
+
+
+## 🏗️ 3. Creating Tables
+
+**What it does:** `CREATE TABLE` builds a new, empty table and defines its **columns** and what **type of data** each column may hold.
+**Why it is used:** A table must exist before you can store anything in it. The column types also make Postgres reject nonsense, like text in a number column.
+**When to use it:** Once per table, after your design is ready (topic 2).
+
+**Analogy:** It's printing an empty spreadsheet with the column headers filled in and each column locked to a data type, before anyone types a single row.
+
+```sql
+CREATE TABLE cities (
+  name VARCHAR(50),
+  country VARCHAR(50),
+  population INTEGER,
+  area INTEGER
+);
+```
+**Output:**
+```
+CREATE TABLE
+```
+
+**Check that it exists:**
+```sql
+\dt
+```
+**Output:**
+```
+          List of relations
+ Schema |  Name  | Type  |  Owner
+--------+--------+-------+----------
+ public | cities | table | postgres
+(1 row)
+```
+`\dt` is a psql command (it starts with a backslash), not SQL.
+
+**Common data types:**
+
+| Type | Stores | Example value |
+|---|---|---|
+| `INTEGER` | Whole numbers | `38505000` |
+| `NUMERIC(10, 2)` | Exact decimals (good for money) | `199.99` |
+| `VARCHAR(50)` | Text up to 50 characters | `'Tokyo'` |
+| `TEXT` | Text of any length | A long description |
+| `BOOLEAN` | True or false | `true` |
+| `DATE` | A calendar date | `'2026-11-10'` |
+| `TIMESTAMP` | Date and time | `'2026-11-10 14:30:00'` |
+
+**If the table already exists:**
+```
+ERROR:  relation "cities" already exists
+```
+Fix it safely with:
+```sql
+CREATE TABLE IF NOT EXISTS cities (
+  name VARCHAR(50),
+  country VARCHAR(50),
+  population INTEGER,
+  area INTEGER
+);
+```
+**Output:**
+```
+NOTICE:  relation "cities" already exists, skipping
+CREATE TABLE
+```
+
+**Delete a table you want to rebuild:**
+```sql
+DROP TABLE cities;
+```
+**Output:**
+```
+DROP TABLE
+```
+
+> ⚠️ **Warning:** **`DROP TABLE` permanently deletes the table and all its data.** There is no undo prompt. Double-check the name, and never run it on a production database casually.
+
+> ⚠️ **Warning:** Money should use `NUMERIC`, not a floating-point type, so cents are never rounded oddly.
+
+> 🏆 **Golden Rule:** Pick the **most specific type** that fits the data. The database then protects you from bad values for free.
