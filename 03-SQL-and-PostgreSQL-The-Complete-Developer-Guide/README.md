@@ -457,3 +457,78 @@ The order in `SELECT` controls the order of the output columns.
 > ⚠️ **Warning:** `SELECT` with no `WHERE` returns **every row**. That is fine for 4 rows and painful for 4 million. Filtering comes in later topics.
 
 > 🏆 **Golden Rule:** `SELECT` **never changes** the table. It's always safe to run, so experiment freely.
+
+
+## 🧮 7. Calculated Columns
+
+**What it does:** Lets you do **math on columns inside a `SELECT`**, and show the result as a new column that doesn't exist in the table.
+**Why it is used:** You can compute values on demand (density, totals, percentages) instead of storing them. The calculation is done fresh each time, so it's never out of date.
+**When to use it:** Any time a useful number can be derived from numbers you already have.
+
+**Analogy:** A spreadsheet formula column. The cell shows `=B2/C2`, but the result isn't typed in by hand.
+
+**Population density (people per square kilometer):**
+```sql
+SELECT name, population / area AS population_density
+FROM cities;
+```
+**Output:**
+```
+   name    | population_density
+-----------+--------------------
+ Tokyo     |               4682
+ Delhi     |              12555
+ Shanghai  |               5510
+ Sao Paulo |               6879
+(4 rows)
+```
+
+**Math operators:**
+
+| Operator | Meaning | Example |
+|---|---|---|
+| `+` | Add | `population + 1000` |
+| `-` | Subtract | `population - 1000` |
+| `*` | Multiply | `price * units_sold` |
+| `/` | Divide | `population / area` |
+| `^` | Power | `2 ^ 3` → `8` |
+| `%` | Remainder | `10 % 3` → `1` |
+| `\|/` | Square root | `\|/ 25` → `5` |
+| `@` | Absolute value | `@ -5` → `5` |
+
+**Naming the new column with `AS`:**
+```sql
+SELECT population / area AS population_density FROM cities;
+```
+Without `AS`, Postgres names the column `?column?`, which is useless.
+
+**The integer-division gotcha:** `population` and `area` are both `INTEGER`, so the answer is **rounded down to a whole number** (Tokyo became 4682, not 4682.59...). To keep decimals, convert one side with `::numeric`:
+```sql
+SELECT
+  name,
+  ROUND(population::numeric / area, 2) AS population_density
+FROM cities;
+```
+**Output:**
+```
+   name    | population_density
+-----------+--------------------
+ Tokyo     |            4682.60
+ Delhi     |           12555.80
+ Shanghai  |            5510.59
+ Sao Paulo |            6879.72
+(4 rows)
+```
+
+| Piece | What it does |
+|---|---|
+| `::numeric` | Converts the value to a decimal number (a **cast**) |
+| `ROUND(value, 2)` | Rounds to 2 decimal places |
+
+> ⚠️ **Warning:** **Integer divided by integer gives an integer.** `7 / 2` returns `3`, not `3.5`. This silently gives wrong-looking results, so cast to `numeric` when you need decimals.
+
+> ⚠️ **Warning:** Dividing by zero causes `ERROR: division by zero`. Be careful if a column can contain `0`.
+
+> ⚠️ **Warning:** An `AS` alias exists only in the **output**. It can't be used inside the same query's `WHERE` clause (you'll learn why later).
+
+> 🏆 **Golden Rule:** **Calculate it, don't store it.** Derived values like density belong in a `SELECT`, not in a column that can drift out of date.
