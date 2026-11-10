@@ -244,3 +244,78 @@ DROP TABLE
 > ⚠️ **Warning:** Money should use `NUMERIC`, not a floating-point type, so cents are never rounded oddly.
 
 > 🏆 **Golden Rule:** Pick the **most specific type** that fits the data. The database then protects you from bad values for free.
+
+
+
+## 🔍 4. Analyzing CREATE TABLE
+
+**What it does:** Breaks the `CREATE TABLE` statement into its parts so you know **what every word and symbol does**, instead of copying it blindly.
+**Why it is used:** Once you can read each piece, writing new tables (and fixing errors) becomes easy.
+**When to use it:** Any time a statement looks confusing, or an error points to a specific part of it.
+
+**Analogy:** It's like diagramming a sentence in grammar class: this word is the verb, this is the object, this is the punctuation.
+
+```sql
+CREATE TABLE cities (
+  name VARCHAR(50),
+  country VARCHAR(50),
+  population INTEGER,
+  area INTEGER
+);
+```
+
+**Piece by piece:**
+
+| Part | Kind | What it does |
+|---|---|---|
+| `CREATE TABLE` | **Keyword** | Tells Postgres what you want to do |
+| `cities` | **Identifier** | The name you chose for the table |
+| `( ... )` | Punctuation | Wraps the list of columns |
+| `name`, `country`, `population`, `area` | **Identifiers** | The names you chose for each column |
+| `VARCHAR(50)`, `INTEGER` | **Data types** | What each column may store |
+| `,` | Punctuation | Separates one column from the next (**no comma after the last one**) |
+| `;` | Punctuation | Ends the statement |
+
+**Each column line follows the same pattern:**
+```
+column_name  DATA_TYPE
+```
+
+**Keyword vs identifier:**
+
+| | Keyword | Identifier |
+|---|---|---|
+| **Who decides it** | SQL / Postgres | **You** |
+| **Examples** | `CREATE`, `TABLE`, `SELECT`, `INTEGER` | `cities`, `population` |
+| **Convention** | Write in `UPPERCASE` | Write in `lowercase_snake_case` |
+
+**See the structure Postgres actually stored:**
+```sql
+\d cities
+```
+**Output:**
+```
+                    Table "public.cities"
+   Column   |         Type          | Collation | Nullable | Default
+------------+-----------------------+-----------+----------+---------
+ name       | character varying(50) |           |          |
+ country    | character varying(50) |           |          |
+ population | integer               |           |          |
+ area       | integer               |           |          |
+```
+Notice that `VARCHAR(50)` is shown as `character varying(50)`. They are the same type.
+
+**What `VARCHAR(50)` really means:** up to **50 characters**. A longer value is rejected:
+```
+ERROR:  value too long for type character varying(50)
+```
+
+**Case rules:**
+- SQL keywords are **not** case-sensitive (`create table` works), but uppercase makes them easy to spot.
+- Unquoted names are folded to **lowercase** by Postgres, so `Cities` and `cities` are the same table.
+
+> ⚠️ **Warning:** A **trailing comma** after the last column (`area INTEGER,`) causes a syntax error. A missing comma between columns causes one too.
+
+> ⚠️ **Warning:** Avoid **double-quoted** names like `"Cities"`. They become case-sensitive, and you'll have to quote them every time.
+
+> 🏆 **Golden Rule:** Read a `CREATE TABLE` as **"create a table named X with these (column name, data type) pairs."** Every column line is just a name followed by a type.
