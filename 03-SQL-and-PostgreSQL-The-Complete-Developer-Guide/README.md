@@ -319,3 +319,71 @@ ERROR:  value too long for type character varying(50)
 > ⚠️ **Warning:** Avoid **double-quoted** names like `"Cities"`. They become case-sensitive, and you'll have to quote them every time.
 
 > 🏆 **Golden Rule:** Read a `CREATE TABLE` as **"create a table named X with these (column name, data type) pairs."** Every column line is just a name followed by a type.
+
+
+## ➕ 5. Inserting Data Into a Table
+
+**What it does:** `INSERT INTO` adds one or more **new rows** to a table.
+**Why it is used:** A new table is empty. Inserting is how data gets in (a new user signs up, an order is placed).
+**When to use it:** Any time you need to store a new record.
+
+**Analogy:** Filling in a new line on a paper form. You say which boxes (columns) you're filling, then write the values in the same order.
+
+```sql
+INSERT INTO cities (name, country, population, area)
+VALUES ('Tokyo', 'Japan', 38505000, 8223);
+```
+**Output:**
+```
+INSERT 0 1
+```
+`INSERT 0 1` means one row was inserted (the `0` is a legacy value you can ignore).
+
+**Insert several rows in one statement:**
+```sql
+INSERT INTO cities (name, country, population, area)
+VALUES
+  ('Delhi', 'India', 28125000, 2240),
+  ('Shanghai', 'China', 22125000, 4015),
+  ('Sao Paulo', 'Brazil', 20935000, 3043);
+```
+**Output:**
+```
+INSERT 0 3
+```
+
+**How the values line up:**
+
+| Column | `name` | `country` | `population` | `area` |
+|---|---|---|---|---|
+| Value | `'Tokyo'` | `'Japan'` | `38505000` | `8223` |
+
+The 1st value goes into the 1st column, the 2nd into the 2nd, and so on.
+
+**Quote rules:**
+
+| Kind of value | How to write it |
+|---|---|
+| Text | **Single** quotes: `'Tokyo'` |
+| Numbers | No quotes: `38505000` |
+| Text containing an apostrophe | Double the apostrophe: `'Cote d''Ivoire'` |
+
+**Common errors:**
+```
+ERROR:  INSERT has more expressions than target columns
+```
+You gave more values than columns. Count them.
+```
+ERROR:  column "Name" of relation "cities" does not exist
+```
+Wrong column name, or you used double quotes. Use `name`.
+```
+ERROR:  invalid input syntax for type integer: "lots"
+```
+Text was placed in a number column.
+
+> ⚠️ **Warning:** **Double quotes mean "this is a column or table name", single quotes mean "this is a text value".** `VALUES ("Tokyo")` fails because Postgres looks for a column named Tokyo.
+
+> ⚠️ **Warning:** Running the same `INSERT` twice creates **duplicate rows**. This table has no unique rule yet (primary keys come later).
+
+> 🏆 **Golden Rule:** Always list the column names in `INSERT INTO table (col1, col2)`. It keeps your statement correct even if the table gains a column later.
