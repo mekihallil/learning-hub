@@ -532,3 +532,87 @@ FROM cities;
 > ⚠️ **Warning:** An `AS` alias exists only in the **output**. It can't be used inside the same query's `WHERE` clause (you'll learn why later).
 
 > 🏆 **Golden Rule:** **Calculate it, don't store it.** Derived values like density belong in a `SELECT`, not in a column that can drift out of date.
+
+
+## 📱 8. Calculating Phone Revenue
+
+**What it does:** A practical use of calculated columns: multiply **price** by **units sold** to get **revenue** for each phone, without ever storing revenue in the table.
+**Why it is used:** It shows the real-world reason calculated columns exist. Revenue is always `price * units_sold`, so storing it separately would just create a number that can go out of sync.
+**When to use it:** Any time a business number comes from combining columns: totals, taxes, discounts, profit.
+
+**Analogy:** A cashier's receipt line: `price x quantity = line total`. The total is worked out when needed, not written into the price tag.
+
+**Step 1: Create and fill the table:**
+```sql
+CREATE TABLE phones (
+  name VARCHAR(50),
+  manufacturer VARCHAR(50),
+  price INTEGER,
+  units_sold INTEGER
+);
+
+INSERT INTO phones (name, manufacturer, price, units_sold)
+VALUES
+  ('N1280', 'Nokia', 199, 1925),
+  ('iPhone 5S', 'Apple', 399, 9436),
+  ('Galaxy S5', 'Samsung', 299, 2359),
+  ('S5620 Monte', 'Samsung', 250, 2385);
+```
+**Output:**
+```
+CREATE TABLE
+INSERT 0 4
+```
+
+**Step 2: Calculate the revenue:**
+```sql
+SELECT name, price * units_sold AS revenue
+FROM phones;
+```
+**Output:**
+```
+    name     | revenue
+-------------+---------
+ N1280       |  383075
+ iPhone 5S   | 3764964
+ Galaxy S5   |  705341
+ S5620 Monte |  596250
+(4 rows)
+```
+
+**Check one row by hand:** `399 x 9436 = 3,764,964` ✅
+
+**Show it next to other columns:**
+```sql
+SELECT
+  name,
+  manufacturer,
+  price,
+  units_sold,
+  price * units_sold AS revenue
+FROM phones;
+```
+**Output:**
+```
+    name     | manufacturer | price | units_sold | revenue
+-------------+--------------+-------+------------+---------
+ N1280       | Nokia        |   199 |       1925 |  383075
+ iPhone 5S   | Apple        |   399 |       9436 | 3764964
+ Galaxy S5   | Samsung      |   299 |       2359 |  705341
+ S5620 Monte | Samsung      |   250 |       2385 |  596250
+(4 rows)
+```
+
+**Calculate vs store:**
+
+| | Calculated column (`price * units_sold`) | Stored `revenue` column |
+|---|---|---|
+| **Always correct?** | ✅ Yes, computed fresh | ❌ Goes stale if price or units change |
+| **Extra storage?** | None | Yes |
+| **Risk** | None | Two numbers that can disagree |
+
+> ⚠️ **Warning:** The sample prices are whole numbers, so `INTEGER` works here. For real prices with cents, use `NUMERIC(10, 2)` (topic 3) so rounding stays exact.
+
+> ⚠️ **Warning:** Very large totals can overflow `INTEGER` (the limit is about 2.1 billion). Use `BIGINT` for big revenue figures.
+
+> 🏆 **Golden Rule:** If a value can be **derived** from other columns, **derive it in the query**. Store only the original facts.
