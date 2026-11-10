@@ -387,3 +387,73 @@ Text was placed in a number column.
 > ⚠️ **Warning:** Running the same `INSERT` twice creates **duplicate rows**. This table has no unique rule yet (primary keys come later).
 
 > 🏆 **Golden Rule:** Always list the column names in `INSERT INTO table (col1, col2)`. It keeps your statement correct even if the table gains a column later.
+
+
+## 🔎 6. Retrieving Data with Select
+
+**What it does:** `SELECT` reads data from a table and returns it as a **result set** (a temporary table of rows). It never changes the stored data.
+**Why it is used:** Storing data is pointless unless you can get it back out and look at it.
+**When to use it:** Every time you want to see, display, or analyze data.
+
+**Analogy:** Asking a librarian: "Show me the title and author columns from the books shelf." You can look at the answer, but the shelf itself stays exactly as it was.
+
+**Get every column and every row:**
+```sql
+SELECT * FROM cities;
+```
+**Output:**
+```
+   name    | country | population | area
+-----------+---------+------------+------
+ Tokyo     | Japan   |   38505000 | 8223
+ Delhi     | India   |   28125000 | 2240
+ Shanghai  | China   |   22125000 | 4015
+ Sao Paulo | Brazil  |   20935000 | 3043
+(4 rows)
+```
+`*` means "all columns".
+
+**Get only specific columns:**
+```sql
+SELECT name, country FROM cities;
+```
+**Output:**
+```
+   name    | country
+-----------+---------
+ Tokyo     | Japan
+ Delhi     | India
+ Shanghai  | China
+ Sao Paulo | Brazil
+(4 rows)
+```
+
+**Change the column order:**
+```sql
+SELECT country, name FROM cities;
+```
+**Output:**
+```
+ country |   name
+---------+-----------
+ Japan   | Tokyo
+ India   | Delhi
+ China   | Shanghai
+ Brazil  | Sao Paulo
+(4 rows)
+```
+The order in `SELECT` controls the order of the output columns.
+
+**Reading the statement:**
+
+| Part | Meaning |
+|---|---|
+| `SELECT` | "Show me..." |
+| `name, country` or `*` | ...these columns |
+| `FROM cities` | ...from this table |
+
+> ⚠️ **Warning:** `SELECT *` is great for exploring, but in real apps list only the columns you need. It's faster, and it avoids leaking private columns (like emails or password hashes).
+
+> ⚠️ **Warning:** `SELECT` with no `WHERE` returns **every row**. That is fine for 4 rows and painful for 4 million. Filtering comes in later topics.
+
+> 🏆 **Golden Rule:** `SELECT` **never changes** the table. It's always safe to run, so experiment freely.
