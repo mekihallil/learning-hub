@@ -116,3 +116,49 @@ SELECT version();
 
 > 🏆 **Golden Rule:** **SQL is the language, PostgreSQL is the engine.** Learning SQL here also helps you with other databases, because most of the core ideas carry over.
 
+
+
+## 🧱 2. Database Design
+
+**What it does:** Database design is deciding **what tables you need, what columns each table has, and how tables connect**, before you write any SQL.
+**Why it is used:** Changing a table after thousands of rows exist is slow and risky. A short plan on paper prevents most of those rewrites (the same idea as the upfront design process in your Next.js notes).
+**When to use it:** At the start of every project, before `CREATE TABLE`.
+
+**Analogy:** An architect draws the blueprint before pouring concrete. Moving a wall on paper costs an eraser. Moving it after the building is up costs a demolition crew.
+
+**The three questions to ask:**
+
+| Question | Answer becomes | Example |
+|---|---|---|
+| 1. What **kinds of things** does the app store? | **Tables** | users, photos, comments, likes |
+| 2. What do we need to know about each one? | **Columns** | a user has a username, email, bio |
+| 3. How do the things **relate** to each other? | **Connections between tables** (covered later) | a photo belongs to one user |
+
+**Practical example: a photo-sharing app**
+```
+users                photos                comments
+-----                ------                --------
+username             url                   contents
+email                caption               (belongs to a user)
+bio                  (belongs to a user)   (belongs to a photo)
+```
+**Output (what each table stores):**
+```
+users:    one row = one person
+photos:   one row = one uploaded photo
+comments: one row = one comment on one photo
+```
+
+**Design rules of thumb:**
+
+| Rule | Why |
+|---|---|
+| One table per **type of thing** | Keeps data organized and easy to find |
+| One row per **individual item** | Each photo or user is its own row |
+| One column per **single fact** | Don't cram a list into one cell, such as `"john, mary, steve"` |
+| Use **plural, lowercase** table names (`users`, `photos`) | Consistent and easy to read |
+| Use `snake_case` for multi-word names (`units_sold`) | Avoids case-sensitivity problems |
+
+> ⚠️ **Warning:** Don't store several values in one column (like a comma-separated list of tags). Searching and updating them later becomes very painful. Give them their own rows or table instead.
+
+> 🏆 **Golden Rule:** **Nouns become tables, facts become columns.** Sketch the tables on paper first, and only write SQL once the sketch makes sense.
