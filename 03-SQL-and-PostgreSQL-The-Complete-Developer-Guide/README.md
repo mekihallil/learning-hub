@@ -59,3 +59,60 @@ The course also explores how PostgreSQL handles data storage, indexing, concurre
 ---
 
 **Learning Goal:** Build a strong foundation in relational database design and SQL, and gain the practical skills needed to work with PostgreSQL in scalable, real-world backend applications.
+
+
+
+## 🐘 1. What is PostgreSQL All About
+
+**What it does:** PostgreSQL (often called **Postgres**) is a free, open-source **relational database management system**. It stores your data in organized **tables** and lets you read, add, change, and delete that data using a language called **SQL**.
+**Why it is used:** Apps need a safe, fast place to keep data (users, orders, posts) that many people can use at the same time without corrupting it. Postgres handles storage, speed, and reliability so you don't have to build that yourself.
+**When to use it:** Almost any app that stores structured data: websites, dashboards, stores, social apps.
+
+**Analogy:** Postgres is a huge, well-run warehouse with a manager. **SQL is the language you use to give the manager instructions** ("bring me all customers from Ethiopia"). The warehouse is the software, the instructions are the language.
+
+**Key terms:**
+
+| Term | Meaning | Example |
+|---|---|---|
+| **Database** | A collection of related tables | `shop` |
+| **Table** | A grid that stores one type of thing | `cities`, `users` |
+| **Row** | One item in a table | One city: Tokyo |
+| **Column** | One property of every item | `population` |
+| **SQL** | The language for talking to the database | `SELECT * FROM cities;` |
+| **PostgreSQL** | The software that stores data and runs your SQL | The "engine" |
+
+**Check that Postgres is installed:**
+```bash
+psql --version
+```
+**Output:**
+```
+psql (PostgreSQL) 17.2
+```
+(Your version number may differ.)
+
+**Ask the server for its version, using SQL:**
+```sql
+SELECT version();
+```
+**Output:**
+```
+                       version
+------------------------------------------------------
+ PostgreSQL 17.2 on x86_64-pc-linux-gnu, compiled by ...
+(1 row)
+```
+
+**Postgres compared to other databases:**
+
+| Database | Type | Typical use |
+|---|---|---|
+| **PostgreSQL** | Server, full-featured | Most web apps, analytics, anything that grows |
+| **MySQL** | Server | Web apps, widely hosted |
+| **SQLite** | A single file, no server | Local development, small apps (you used it with Prisma) |
+| **SQL Server** | Server, from Microsoft | Enterprise and Windows environments |
+
+> ⚠️ **Warning:** SQL is a standard, but every database has small **dialect differences**. The commands in these notes are written for **PostgreSQL**. They may need tweaks on MySQL or SQL Server.
+
+> 🏆 **Golden Rule:** **SQL is the language, PostgreSQL is the engine.** Learning SQL here also helps you with other databases, because most of the core ideas carry over.
+
