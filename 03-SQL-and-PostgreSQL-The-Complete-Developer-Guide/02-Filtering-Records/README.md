@@ -338,3 +338,77 @@ SELECT name FROM phones WHERE price > 300;
 > ⚠️ **Warning:** Don't peek at topic 14 first. Even a wrong attempt teaches you more than reading the answer.
 
 > 🏆 **Golden Rule:** Break every question into **what to show, where from, and which rows**. It turns any plain-English request into a query.
+
+
+## ✅ 14. A Where Solution
+
+**What it does:** Gives the worked answers to the exercise in topic 13, with an explanation of why each one works.
+**Why it is used:** Comparing your attempt with a clear solution shows exactly where your thinking differed.
+**When to use it:** After you've tried the three tasks yourself.
+
+**Task 1: phones made by Samsung**
+```sql
+SELECT name, manufacturer
+FROM phones
+WHERE manufacturer = 'Samsung';
+```
+**Output:**
+```
+    name     | manufacturer
+-------------+--------------
+ Galaxy S5   | Samsung
+ S5620 Monte | Samsung
+(2 rows)
+```
+One simple `=` test on a text column.
+
+**Task 2: sold fewer than 2,000 units OR cost more than 350**
+```sql
+SELECT name, price
+FROM phones
+WHERE units_sold < 2000 OR price > 350;
+```
+**Output:**
+```
+   name    | price
+-----------+-------
+ N1280     |   199
+ iPhone 5S |   399
+(2 rows)
+```
+
+| Row | `units_sold < 2000` | `price > 350` | Kept (`OR`)? |
+|---|---|---|---|
+| N1280 | true (1925) | false | ✅ |
+| iPhone 5S | false | true (399) | ✅ |
+| Galaxy S5 | false | false | ❌ |
+| S5620 Monte | false | false | ❌ |
+
+**Task 3: priced between 200 and 300, both included**
+```sql
+SELECT name
+FROM phones
+WHERE price BETWEEN 200 AND 300;
+```
+**Output:**
+```
+    name
+-------------
+ Galaxy S5
+ S5620 Monte
+(2 rows)
+```
+Equivalent to `WHERE price >= 200 AND price <= 300`.
+
+**Common mistakes:**
+
+| Mistake | What happens |
+|---|---|
+| `WHERE manufacturer = "Samsung"` | `ERROR: column "Samsung" does not exist` (double quotes) |
+| `WHERE manufacturer = 'samsung'` | `(0 rows)`, case-sensitive text |
+| Task 2 with `AND` instead of `OR` | `(0 rows)`, no phone is both cheap-selling and over 350 |
+| `WHERE price BETWEEN 300 AND 200` | `(0 rows)`, the **smaller** number must come first |
+
+> ⚠️ **Warning:** A query that returns `(0 rows)` is **not** an error, so SQL won't warn you. Always sanity-check the result against what you expected.
+
+> 🏆 **Golden Rule:** Read the English word literally. "Fewer than 2,000 **or** more than 350" means **either** can be true, so use `OR`.
