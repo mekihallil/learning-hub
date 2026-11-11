@@ -231,3 +231,59 @@ photos            photos_tags                 tags
 > ⚠️ **Warning:** Never try to fake many-to-many by adding columns like `tag1`, `tag2`, `tag3`. You'd be stuck at three tags and every query gets awkward.
 
 > 🏆 **Golden Rule:** **Many-to-many always needs a third table.** If neither side can hold the link, put it in a table that holds one foreign key for each side.
+
+
+## 🔑 24. Primary Keys and Foreign Keys
+
+**What it does:** Two kinds of columns that make relationships possible. A **primary key** uniquely identifies each row in its own table. A **foreign key** is a column in another table that **points at** a primary key.
+**Why it is used:** To link a photo to a user you need a reliable, permanent way to say "this exact user." Names can repeat or change, but an id can't.
+**When to use it:** Every table gets a primary key. Every "many" side of a relationship gets a foreign key.
+
+**Analogy:** A primary key is your **passport number**. It's unique to you, never reused, and it never changes. A foreign key is writing that passport number on a hotel booking form to say which person the booking is for.
+
+**The pair in action:**
+```
+users  (id = PRIMARY KEY)           photos  (user_id = FOREIGN KEY)
+---------------------               ------------------------------
+ id | username                       id | url            | user_id
+----+------------                   ----+----------------+--------
+  1 | monahan93         ◄────────      2 | http://two.jpg |      1
+  2 | pferrer           ◄────────      5 | http://754.jpg |      2
+  3 | si93onis
+  4 | 99stroman         ◄────────      1 | http://one.jpg |      4
+```
+`photos.user_id` is a foreign key because its values come from `users.id`, the primary key.
+
+**Rules for a primary key:**
+
+| Rule | Meaning |
+|---|---|
+| **Unique** | No two rows share the same value |
+| **Never `NULL`** | Every row must have one |
+| **Never changes** | Other tables rely on it staying the same |
+| **One per table** | Each table has a single primary key |
+
+**Rules for a foreign key:**
+
+| Rule | Meaning |
+|---|---|
+| Points at **another table's primary key** | `photos.user_id` → `users.id` |
+| Can **repeat** | Many photos can share one `user_id` |
+| Can be `NULL` (unless you forbid it) | A photo can exist with no user (topic 31) |
+| Must refer to a value that **exists** | You can't point at user 9999 if there's no such user (topic 31) |
+
+**Primary key vs foreign key:**
+
+| | Primary key | Foreign key |
+|---|---|---|
+| **Purpose** | Identify **this** row | Point at a row in **another** table |
+| **Unique values?** | ✅ Always | ❌ Can repeat |
+| **Allows `NULL`?** | ❌ Never | ✅ Yes, by default |
+| **Example** | `users.id` | `photos.user_id` |
+| **Count per table** | Exactly one | Zero or many |
+
+**Naming convention:** call the foreign key `<singular_table>_id`, like `user_id` or `photo_id`. Anyone reading it knows which table it points to.
+
+> ⚠️ **Warning:** **Don't use a real-world value as a primary key**, such as a username or an email. People change usernames and emails, and every linked row would then break. Use a meaningless generated number (topic 26).
+
+> 🏆 **Golden Rule:** **Primary key = "who am I?" Foreign key = "who do I belong to?"** The foreign key always stores another table's primary key value.
