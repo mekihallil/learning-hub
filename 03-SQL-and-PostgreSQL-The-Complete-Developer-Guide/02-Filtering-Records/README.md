@@ -484,3 +484,76 @@ SELECT name FROM cities WHERE area IN (2240, 3043);
 > ⚠️ **Warning:** Every value in the list must match the column's type. Text goes in single quotes, numbers don't.
 
 > 🏆 **Golden Rule:** **More than two `OR` tests on the same column? Switch to `IN`.** It's shorter, clearer, and avoids precedence mistakes.
+
+
+## 🧪 16. A Where With Lists Solution
+
+**What it does:** A short exercise on `IN` and `NOT IN` with the `phones` table, followed by the solutions.
+**Why it is used:** Seeing `IN` solve real questions shows how much cleaner it is than `OR` chains.
+**When to use it:** After topic 15. Try each task first, then compare.
+
+**Task A.** Print the name and manufacturer of phones made by Apple or Samsung.
+
+**Solution:**
+```sql
+SELECT name, manufacturer
+FROM phones
+WHERE manufacturer IN ('Apple', 'Samsung');
+```
+**Output:**
+```
+    name     | manufacturer
+-------------+--------------
+ iPhone 5S   | Apple
+ Galaxy S5   | Samsung
+ S5620 Monte | Samsung
+(3 rows)
+```
+
+**Task B.** Print the name and price of phones whose price is **not** 199 or 399.
+
+**Solution:**
+```sql
+SELECT name, price
+FROM phones
+WHERE price NOT IN (199, 399);
+```
+**Output:**
+```
+    name     | price
+-------------+-------
+ Galaxy S5   |   299
+ S5620 Monte |   250
+(2 rows)
+```
+
+**Task C.** Print the name of Samsung or Nokia phones that sold more than 2,000 units.
+
+**Solution:**
+```sql
+SELECT name
+FROM phones
+WHERE manufacturer IN ('Samsung', 'Nokia')
+  AND units_sold > 2000;
+```
+**Output:**
+```
+    name
+-------------
+ Galaxy S5
+ S5620 Monte
+(2 rows)
+```
+
+| Row | `manufacturer IN (...)` | `units_sold > 2000` | Kept? |
+|---|---|---|---|
+| N1280 (Nokia, 1925) | true | false | ❌ |
+| iPhone 5S (Apple) | false | true | ❌ |
+| Galaxy S5 (Samsung, 2359) | true | true | ✅ |
+| S5620 Monte (Samsung, 2385) | true | true | ✅ |
+
+Task C shows a nice benefit of `IN`: because the "or" is **inside** the list, you can add `AND` without parentheses, and there's no precedence trap (topic 12).
+
+> ⚠️ **Warning:** Check the data type. `IN ('199', '399')` with quotes on a number column may fail or behave oddly. Numbers don't get quotes.
+
+> 🏆 **Golden Rule:** `IN` turns "this or this or this" into a single test, and it stays safe to combine with `AND`.
