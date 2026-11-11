@@ -439,3 +439,111 @@ It works much like `SERIAL`, but it's standard SQL, and `ALWAYS` stops you from 
 > ⚠️ **Warning:** Never treat ids as "how many rows exist." Gaps happen, so an id of 100 doesn't mean there are 100 rows.
 
 > 🏆 **Golden Rule:** **Let the database generate primary keys.** Leave `id` out of your `INSERT`, and use `RETURNING id` when you need to know the new value.
+
+
+## 🧷 27. Creating Foreign Key Columns
+
+**What it does:** Adds a column that is **linked to another table's primary key**, using `REFERENCES`. Postgres then enforces the link automatically.
+**Why it is used:** This is the actual code behind everything in topics 22 to 25. Without it, `user_id` would just be an ordinary number that could point anywhere.
+**When to use it:** Whenever a table sits on the "many" side of a relationship.
+
+**Analogy:** Writing a name on a form is one thing. Having the clerk **check the name against the official register** is a foreign key. The database does the checking for you.
+
+**Create `photos`, linked to `users`:**
+```sql
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200),
+  user_id INTEGER REFERENCES users(id)
+);
+```
+**Output:**
+```
+CREATE TABLE
+```
+
+| Part | Meaning |
+|---|---|
+| `user_id` | The column name (`<table>_id` convention, topic 24) |
+| `INTEGER` | Same kind of number as a `SERIAL` id |
+| `REFERENCES users(id)` | "Every value here must match a value in `users.id`" |
+
+**Insert photos, using the real user ids:**
+```sql
+INSERT INTO photos (url, user_id)
+VALUES
+  ('http://one.jpg', 4),
+  ('http://two.jpg', 1),
+  ('http://25.jpg', 1),
+  ('http://36.jpg', 1),
+  ('http://754.jpg', 2),
+  ('http://35.jpg', 3),
+  ('http://256.jpg', 4);
+```
+**Output:**
+```
+INSERT 0 7
+```
+
+**Look at the result:**
+```sql
+SELECT * FROM photos;
+```
+**Output:**
+```
+ id |      url       | user_id
+----+----------------+---------
+  1 | http://one.jpg |       4
+  2 | http://two.jpg |       1
+  3 | http://25.jpg  |       1
+  4 | http://36.jpg  |       1
+  5 | http://754.jpg |       2
+  6 | http://35.jpg  |       3
+  7 | http://256.jpg |       4
+(7 rows)
+```
+
+**Confirm Postgres stored the link:**
+```sql
+\d photos
+```
+**Output:**
+```
+                                 Table "public.photos"
+ Column  |          Type          | Nullable |              Default
+---------+------------------------+----------+------------------------------------
+ id      | integer                | not null | nextval('photos_id_seq'::regclass)
+ url     | character varying(200) |          |
+ user_id | integer                |          |
+Indexes:
+    "photos_pkey" PRIMARY KEY, btree (id)
+Foreign-key constraints:
+    "photos_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+```
+
+**Try a link that doesn't exist:**
+```sql
+INSERT INTO photos (url, user_id) VALUES ('http://nobody.jpg', 9999);
+```
+**Output:**
+```
+ERROR:  insert or update on table "photos" violates foreign key constraint "photos_user_id_fkey"
+DETAIL:  Key (user_id)=(9999) is not present in table "users".
+```
+Postgres refused, because there's no user 9999.
+
+**Two syntax styles (same result):**
+```sql
+-- Short form, used above
+user_id INTEGER REFERENCES users(id)
+
+-- Long form, with an explicit name for the rule
+user_id INTEGER,
+CONSTRAINT photos_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id)
+```
+
+> ⚠️ **Warning:** **Create the referenced table first.** Making `photos` before `users` fails with `ERROR: relation "users" does not exist`.
+
+> ⚠️ **Warning:** The failed insert above may still have **used up** an id from the counter (topic 26), so the next photo id can skip a number. That's normal.
+
+> 🏆 **Golden Rule:** **`REFERENCES other_table(column)` turns a plain number into a checked link.** Write it on every foreign key so the database protects your data for you.
