@@ -165,3 +165,69 @@ User 1 appears on **three** photo rows. Each photo row names **exactly one** use
 > ⚠️ **Warning:** Don't try to store "many" inside one cell (like `'1,2,3'`). You can't search, count, or validate it reliably (topic 2).
 
 > 🏆 **Golden Rule:** **The foreign key goes on the "many" side.** Ask "which side has many?" and put the link column there.
+
+
+## 🔀 23. One-to-One and Many-to-Many Relationships
+
+**What it does:** Covers the two other relationship types. **One-to-one** links exactly one record to exactly one record. **Many-to-many** links many records to many records on both sides.
+**Why it is used:** Not everything is one-to-many. A person has one passport, but a student takes many classes and each class has many students.
+**When to use it:** When you ask "who does this belong to?" and the answer is "just one, and it only belongs to one back" or "many, and it also works the other way."
+
+**Analogy:** One-to-one is a **person and their passport**. Many-to-many is **students and classes**: each student has many classes, and each class has many students.
+
+**The four relationship types:**
+
+| Type | Example | Where the link goes |
+|---|---|---|
+| **One-to-many** | User → photos | A foreign key on the "many" side (topic 22) |
+| **Many-to-one** | Photos → user | Same relationship, opposite direction |
+| **One-to-one** | User → profile | A foreign key on either side, marked `UNIQUE` |
+| **Many-to-many** | Photos ↔ tags | A **third table** in between |
+
+**One-to-one: each user has one profile**
+```
+users                    profiles
+------------             ------------------------------
+ id | username            id | bio          | user_id
+----+-----------          ----+--------------+--------
+  1 | monahan93             1 | Loves hiking |      1
+  2 | pferrer               2 | Photographer |      2
+```
+Each `user_id` appears **once only**. In practice you'd enforce that with `UNIQUE` (a column rule you'll meet later).
+
+**Many-to-many: photos and tags**
+A photo can have many tags, and a tag can be on many photos. Neither table can hold the link alone, so we add a **join table** (also called a junction or association table):
+```
+photos            photos_tags                 tags
+-------           -----------------           ---------
+ id | url          photo_id | tag_id            id | name
+----+------        ---------+--------          ----+--------
+  1 | one.jpg             1 |      1             1 | travel
+  2 | two.jpg             1 |      2             2 | food
+                          2 |      1
+```
+**Reading it:** photo 1 has tags 1 and 2 (travel, food). Tag 1 (travel) is on photos 1 and 2.
+
+**The join table pattern:**
+
+| Part | Meaning |
+|---|---|
+| Name | The two table names together, like `photos_tags` |
+| Columns | **Two foreign keys**, one for each side |
+| Each row | One pairing, such as "photo 1 has tag 2" |
+
+**Another many-to-many, hiding in our app:** `comments` itself is a join between users and photos. Many users comment on many photos, and each comment row records one pairing.
+
+**Choosing the type:**
+
+| Ask | Answer | Type |
+|---|---|---|
+| Does A have many Bs, but each B has one A? | Yes | One-to-many |
+| Does each A have exactly one B and vice versa? | Yes | One-to-one |
+| Does A have many Bs **and** B have many As? | Yes | Many-to-many (use a join table) |
+
+> ⚠️ **Warning:** One-to-one is rarer than it looks. Often the two things are really **one table** that doesn't need splitting. Split only when there's a reason (rarely used data, or sensitive data kept separate).
+
+> ⚠️ **Warning:** Never try to fake many-to-many by adding columns like `tag1`, `tag2`, `tag3`. You'd be stuck at three tags and every query gets awkward.
+
+> 🏆 **Golden Rule:** **Many-to-many always needs a third table.** If neither side can hold the link, put it in a table that holds one foreign key for each side.
