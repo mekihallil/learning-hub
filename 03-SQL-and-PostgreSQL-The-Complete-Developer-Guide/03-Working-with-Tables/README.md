@@ -913,3 +913,62 @@ Reversing the order fails.
 > ⚠️ **Warning:** You can't add `NOT NULL` to a column that already contains `NULL`s, so fix or delete those rows first.
 
 > 🏆 **Golden Rule:** **`REFERENCES` guarantees a link is valid. `NOT NULL` guarantees a link exists.** Use both when a record must always belong to something.
+
+
+
+## ⛔ 32. Constraints Around Deletion
+
+**What it does:** Explains what happens when you **delete a row that other rows point to**, and the five choices you have for handling it.
+**Why it is used:** If you delete user 1 but three photos still say `user_id = 1`, those photos would point at nothing. Postgres makes you decide what should happen instead of leaving broken links.
+**When to use it:** When designing any foreign key. The choice is part of the table definition.
+
+**Analogy:** Closing a **parent account** while its **child accounts** still depend on it. The bank must either refuse, close the children too, or leave them with no parent. It can't just pretend nothing happened.
+
+**The default behavior: refuse.**
+```sql
+DELETE FROM users WHERE id = 1;
+```
+**Output:**
+```
+ERROR:  update or delete on table "users" violates foreign key constraint "photos_user_id_fkey" on table "photos"
+DETAIL:  Key (id)=(1) is still referenced from table "photos".
+```
+User 1 still owns photos, so Postgres blocks the delete.
+
+**The five options, set with `ON DELETE`:**
+
+| Option | What happens to the child rows when the parent is deleted |
+|---|---|
+| `NO ACTION` (**default**) | **Block** the delete (the check happens at the end of the statement) |
+| `RESTRICT` | **Block** the delete (the check happens immediately) |
+| `CASCADE` | **Delete the child rows too** |
+| `SET NULL` | **Keep** the child rows, set their foreign key to `NULL` |
+| `SET DEFAULT` | **Keep** the child rows, set their foreign key to the column's default value |
+
+**Syntax:**
+```sql
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200),
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+**Choosing an option:**
+
+| Situation | Good choice | Why |
+|---|---|---|
+| A user leaves and their photos should go too | `CASCADE` | Photos are meaningless without an owner |
+| You want to be **forced** to clean up first | `RESTRICT` | Prevents accidental data loss |
+| Posts should stay when the author leaves | `SET NULL` | Keeps the content, drops the link |
+| A deleted parent should fall back to a default owner | `SET DEFAULT` | Rare, needs a valid default row |
+
+**Which parent does this affect?** The `ON DELETE` rule sits on the **child's** foreign key. It controls what happens when the **parent** row (the one being pointed at) is deleted.
+
+**What about updating the parent's id?** There's a matching `ON UPDATE` option, but primary keys should never change (topic 24), so you'll rarely need it.
+
+> ⚠️ **Warning:** **`CASCADE` is powerful and dangerous.** One `DELETE` on a user can silently remove their photos, and the photos' comments, and so on down the chain.
+
+> ⚠️ **Warning:** Think carefully about the **default**. `NO ACTION` is safe, but it means deleting a user is impossible until their photos are gone.
+
+> 🏆 **Golden Rule:** **Every foreign key needs a decision: block, cascade, or set null.** Choose it deliberately, based on what the child data means without its parent.
