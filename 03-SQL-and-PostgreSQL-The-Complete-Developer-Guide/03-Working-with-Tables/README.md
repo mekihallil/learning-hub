@@ -1174,3 +1174,139 @@ Remember to use `IS NULL`, not `= NULL` (topic 11).
 > ⚠️ **Warning:** Rows with `NULL` foreign keys are easy to forget. Decide how your app should display and clean up "ownerless" rows.
 
 > 🏆 **Golden Rule:** **`SET NULL` means "keep the data, forget the owner."** Use it when the child record is worth keeping on its own.
+
+
+
+## 🧩 35. Adding Some Complexity
+
+**What it does:** Puts the whole section together in one realistic schema: **three tables, three relationships, and a deliberate delete rule on every foreign key**.
+**Why it is used:** Real apps combine all of these ideas at once. Seeing them work together shows how the pieces support each other.
+**When to use it:** As the capstone for topics 20 to 34, and as a template for your own designs.
+
+**Analogy:** Learning each LEGO brick separately was topics 22 to 34. This is building the actual model.
+
+**The design decisions:**
+
+| Relationship | Delete rule | Reasoning |
+|---|---|---|
+| User deleted → their **photos** | `CASCADE` | A photo is meaningless without its owner |
+| User deleted → their **comments** | `CASCADE` | Remove their activity with their account |
+| Photo deleted → its **comments** | `CASCADE` | Comments only make sense on their photo |
+
+**The full schema:**
+```sql
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS photos;
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200) NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE comments (
+  id SERIAL PRIMARY KEY,
+  contents VARCHAR(240) NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE
+);
+```
+**Output:**
+```
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+```
+
+**Load sample data:**
+```sql
+INSERT INTO users (username)
+VALUES ('monahan93'), ('pferrer'), ('si93onis'), ('99stroman');
+
+INSERT INTO photos (url, user_id)
+VALUES
+  ('http://one.jpg', 4), ('http://two.jpg', 1), ('http://25.jpg', 1),
+  ('http://36.jpg', 1), ('http://754.jpg', 2), ('http://35.jpg', 3),
+  ('http://256.jpg', 4);
+
+INSERT INTO comments (contents, user_id, photo_id)
+VALUES
+  ('Nice shot!', 2, 1),
+  ('Love this', 3, 1),
+  ('Where was this taken?', 4, 2),
+  ('Beautiful', 1, 5);
+```
+**Output:**
+```
+INSERT 0 4
+INSERT 0 7
+INSERT 0 4
+```
+Both foreign keys on `comments` mean it connects users and photos, the many-to-many pattern from topic 23.
+
+**Test 1: delete one photo.**
+```sql
+DELETE FROM photos WHERE id = 1;
+SELECT contents, photo_id FROM comments;
+```
+**Output:**
+```
+DELETE 1
+
+       contents        | photo_id
+-----------------------+----------
+ Where was this taken? |        2
+ Beautiful             |        5
+(2 rows)
+```
+The two comments on photo 1 were removed along with it.
+
+**Test 2: delete a whole user.** User 1 (`monahan93`) owns photos 2, 3, and 4 and wrote the comment "Beautiful":
+```sql
+DELETE FROM users WHERE id = 1;
+SELECT id, url FROM photos;
+SELECT * FROM comments;
+```
+**Output:**
+```
+DELETE 1
+
+ id |      url
+----+----------------
+  5 | http://754.jpg
+  6 | http://35.jpg
+  7 | http://256.jpg
+(3 rows)
+
+ id | contents | user_id | photo_id
+----+----------+---------+----------
+(0 rows)
+```
+One `DELETE` removed the user, their three photos, and **every comment** connected to them: the comment they wrote (`Beautiful`) and the comment on their photo 2 (`Where was this taken?`).
+
+**Cascade paths in this schema:**
+```
+delete user ──► their photos ──► comments on those photos
+        └─────► comments they wrote
+delete photo ─► comments on that photo
+```
+
+**Questions to ask on every foreign key:**
+
+| Question | Where the answer goes |
+|---|---|
+| Must this link always exist? | `NOT NULL` (topic 31) |
+| Must it point at a real row? | `REFERENCES` (topic 27) |
+| What happens if the parent is deleted? | `ON DELETE ...` (topics 32 to 34) |
+
+> ⚠️ **Warning:** With several cascades, a single `DELETE` can remove **a lot more than you expect**. Test on throwaway data and use a transaction (`BEGIN` / `ROLLBACK`) before running it for real.
+
+> ⚠️ **Warning:** Many apps avoid permanent deletes for important data and use a "soft delete" instead (a column like `deleted_at`), so records can be restored. That's a design choice worth considering.
+
+> 🏆 **Golden Rule:** **For every relationship, decide three things: must it exist, must it be valid, and what happens on delete.** Answer those and your schema protects itself.
