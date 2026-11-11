@@ -972,3 +972,125 @@ CREATE TABLE photos (
 > ⚠️ **Warning:** Think carefully about the **default**. `NO ACTION` is safe, but it means deleting a user is impossible until their photos are gone.
 
 > 🏆 **Golden Rule:** **Every foreign key needs a decision: block, cascade, or set null.** Choose it deliberately, based on what the child data means without its parent.
+
+
+
+## 🧪 33. Testing Deletion Constraints
+
+**What it does:** Runs hands-on tests of `RESTRICT` and `CASCADE`, so you can **see** each behavior instead of just reading about it.
+**Why it is used:** Delete rules are easy to misunderstand. Watching real rows disappear (or refuse to) makes them stick.
+**When to use it:** After topic 32, on a practice database.
+
+**Analogy:** A fire drill. You practice on purpose, in a safe place, so you know what happens when it matters.
+
+**Start from a clean slate.** Because tables depend on each other, drop **children first**:
+```sql
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS photos;
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50)
+);
+
+INSERT INTO users (username)
+VALUES ('monahan93'), ('pferrer'), ('si93onis'), ('99stroman');
+```
+**Output:**
+```
+DROP TABLE
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+INSERT 0 4
+```
+(You'll see `NOTICE: table "..." does not exist, skipping` if a table wasn't there.)
+
+### Test 1: `ON DELETE RESTRICT`
+```sql
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200),
+  user_id INTEGER REFERENCES users(id) ON DELETE RESTRICT
+);
+
+INSERT INTO photos (url, user_id)
+VALUES ('http://one.jpg', 4), ('http://two.jpg', 1);
+```
+**Try deleting a user who has photos:**
+```sql
+DELETE FROM users WHERE id = 1;
+```
+**Output:**
+```
+ERROR:  update or delete on table "users" violates foreign key constraint "photos_user_id_fkey" on table "photos"
+DETAIL:  Key (id)=(1) is still referenced from table "photos".
+```
+**Delete a user with no photos:**
+```sql
+DELETE FROM users WHERE id = 3;
+```
+**Output:**
+```
+DELETE 1
+```
+User 3 owns nothing, so there's nothing to protect.
+
+### Test 2: `ON DELETE CASCADE`
+**Rebuild `photos` with the new rule:**
+```sql
+DROP TABLE photos;
+
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200),
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+INSERT INTO photos (url, user_id)
+VALUES ('http://one.jpg', 4), ('http://two.jpg', 2), ('http://25.jpg', 2);
+```
+**Delete user 2, who owns two photos:**
+```sql
+DELETE FROM users WHERE id = 2;
+```
+**Output:**
+```
+DELETE 1
+```
+**Check the photos:**
+```sql
+SELECT * FROM photos;
+```
+**Output:**
+```
+ id |      url       | user_id
+----+----------------+---------
+  1 | http://one.jpg |       4
+(1 row)
+```
+Postgres reported deleting only **one** row, but user 2's two photos vanished too. The cascade removed them silently.
+
+**What you just proved:**
+
+| Test | Parent delete result | Child rows |
+|---|---|---|
+| `RESTRICT`, parent has children | ❌ Error | Untouched |
+| `RESTRICT`, parent has no children | ✅ Works | None to affect |
+| `CASCADE`, parent has children | ✅ Works | **Deleted too** |
+
+**Tip: do dangerous tests inside a transaction (topic 18):**
+```sql
+BEGIN;
+DELETE FROM users WHERE id = 4;
+SELECT * FROM photos;
+ROLLBACK;
+```
+`ROLLBACK` undoes the user delete **and** the cascaded photo delete.
+
+> ⚠️ **Warning:** `DROP TABLE` fails if another table still references it (`ERROR: cannot drop table photos because other objects depend on it`). Drop **children first**, or use `DROP TABLE ... CASCADE` if you truly mean to remove dependents.
+
+> ⚠️ **Warning:** The "rows deleted" count (`DELETE 1`) **only counts the parent**. Cascaded deletes don't show up in it, so always check the child table.
+
+> 🏆 **Golden Rule:** **Test your delete rules on throwaway data**, and verify the child table afterwards. The only way to trust a cascade is to watch it happen.
