@@ -339,3 +339,103 @@ photos where user_id = 1  →  rows 2, 3, 4
 > ⚠️ **Warning:** The foreign key is **not** the user's data. It's only an id. To see the username you must look it up in `users` (topic 28).
 
 > 🏆 **Golden Rule:** **A foreign key is a promise.** It either points at a row that really exists or it's `NULL`, and Postgres enforces that promise on every write.
+
+
+
+## 🔢 26. Auto-Generated IDs
+
+**What it does:** Lets Postgres **create the primary key value for you** every time you insert a row, using the `SERIAL` type. You never type an id yourself.
+**Why it is used:** Ids must be unique and never repeat. Handing out numbers by hand invites duplicates. Postgres keeps a counter and always gives the next number.
+**When to use it:** For the primary key of almost every table.
+
+**Analogy:** A **ticket dispenser** at a deli counter. Each person gets the next number, nobody gets the same one, and a number is never handed out twice.
+
+**Create the `users` table:**
+```sql
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50)
+);
+```
+**Output:**
+```
+CREATE TABLE
+```
+
+| Part | Meaning |
+|---|---|
+| `id` | The column name |
+| `SERIAL` | A whole number that Postgres fills in automatically, counting up from 1 |
+| `PRIMARY KEY` | Unique, never `NULL`, identifies the row (topic 24) |
+
+**Insert rows without mentioning `id`:**
+```sql
+INSERT INTO users (username)
+VALUES ('monahan93'), ('pferrer'), ('si93onis'), ('99stroman');
+```
+**Output:**
+```
+INSERT 0 4
+```
+
+**Check the ids Postgres generated:**
+```sql
+SELECT * FROM users;
+```
+**Output:**
+```
+ id | username
+----+-----------
+  1 | monahan93
+  2 | pferrer
+  3 | si93onis
+  4 | 99stroman
+(4 rows)
+```
+
+**See the ids as you insert with `RETURNING` (topic 18):**
+```sql
+INSERT INTO users (username) VALUES ('newperson') RETURNING id;
+```
+**Output:**
+```
+ id
+----
+  5
+
+INSERT 0 1
+```
+Remove that row again so the examples below still match:
+```sql
+DELETE FROM users WHERE username = 'newperson';
+```
+
+**What `SERIAL` does behind the scenes:**
+```
+SERIAL = INTEGER column + a counter (called a sequence) + "use the counter by default"
+```
+
+**Surprising but normal behavior:**
+
+| Situation | What happens to ids |
+|---|---|
+| You delete user 3 | Id 3 is **never reused**, so the next user gets 5 or higher |
+| An insert **fails** (an error) | The counter may still have advanced, leaving a **gap** |
+| You `ROLLBACK` a transaction | The counter does **not** roll back |
+
+Gaps in ids are completely normal and harmless.
+
+**The modern alternative:** since PostgreSQL 10, the SQL-standard syntax is:
+```sql
+CREATE TABLE users (
+  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  username VARCHAR(50)
+);
+```
+It works much like `SERIAL`, but it's standard SQL, and `ALWAYS` stops you from accidentally supplying your own id. `SERIAL` is still very widely used, and both are fine.
+
+> ⚠️ **Warning:** **Don't insert your own ids into a `SERIAL` column.** Postgres won't notice, so the counter will later try the same number and fail with a duplicate key error.
+
+> ⚠️ **Warning:** Never treat ids as "how many rows exist." Gaps happen, so an id of 100 doesn't mean there are 100 rows.
+
+> 🏆 **Golden Rule:** **Let the database generate primary keys.** Leave `id` out of your `INSERT`, and use `RETURNING id` when you need to know the new value.
