@@ -718,3 +718,103 @@ INSERT 0 4
 > ⚠️ **Warning:** Table order matters. `comments` points at both other tables, so it must be created **last**.
 
 > 🏆 **Golden Rule:** A table can have **as many foreign keys as it needs**. Each one is just another `column INTEGER REFERENCES table(id)`.
+
+
+
+## ✅ 30. Foreign Key Creation Solution
+
+**What it does:** The worked answers to the exercise in topic 29, with an explanation of each part.
+**Why it is used:** Comparing your attempt with a clean solution shows exactly where your thinking differed.
+**When to use it:** After you've tried the four tasks yourself.
+
+**Task 1: create the table**
+```sql
+CREATE TABLE comments (
+  id SERIAL PRIMARY KEY,
+  contents VARCHAR(240),
+  user_id INTEGER REFERENCES users(id),
+  photo_id INTEGER REFERENCES photos(id)
+);
+```
+**Output:**
+```
+CREATE TABLE
+```
+
+| Column | Why it's written that way |
+|---|---|
+| `id SERIAL PRIMARY KEY` | Auto-generated unique id (topic 26) |
+| `contents VARCHAR(240)` | Text, capped at 240 characters |
+| `user_id ... REFERENCES users(id)` | Who wrote it, checked against `users` |
+| `photo_id ... REFERENCES photos(id)` | Which photo it's on, checked against `photos` |
+
+**Task 2: insert the comments**
+```sql
+INSERT INTO comments (contents, user_id, photo_id)
+VALUES
+  ('Nice shot!', 2, 1),
+  ('Love this', 3, 1),
+  ('Where was this taken?', 4, 2),
+  ('Beautiful', 1, 5);
+```
+**Output:**
+```
+INSERT 0 4
+```
+
+**Task 3: comments on photo 1**
+```sql
+SELECT contents FROM comments WHERE photo_id = 1;
+```
+**Output:**
+```
+  contents
+------------
+ Nice shot!
+ Love this
+(2 rows)
+```
+
+**Task 4: a comment on a photo that doesn't exist**
+```sql
+INSERT INTO comments (contents, user_id, photo_id)
+VALUES ('Ghost comment', 1, 999);
+```
+**Output:**
+```
+ERROR:  insert or update on table "comments" violates foreign key constraint "comments_photo_id_fkey"
+DETAIL:  Key (photo_id)=(999) is not present in table "photos".
+```
+The error name (`comments_photo_id_fkey`) tells you **which** foreign key failed.
+
+**Bonus: read it all together with joins (preview):**
+```sql
+SELECT username, contents, url
+FROM comments
+JOIN users ON users.id = comments.user_id
+JOIN photos ON photos.id = comments.photo_id;
+```
+**Output:**
+```
+ username  |       contents        |      url
+-----------+-----------------------+----------------
+ pferrer   | Nice shot!            | http://one.jpg
+ si93onis  | Love this             | http://one.jpg
+ 99stroman | Where was this taken? | http://two.jpg
+ monahan93 | Beautiful             | http://754.jpg
+(4 rows)
+```
+One comment row connects **three** pieces of information, which is the power of two foreign keys.
+
+**Common mistakes:**
+
+| Mistake | What happens |
+|---|---|
+| Creating `comments` before `photos` | `ERROR: relation "photos" does not exist` |
+| Forgetting `REFERENCES` | The column is just a number, with **no protection** |
+| Putting `id` in the `INSERT` column list | You override the counter (topic 26) |
+| Mixing up the user and photo ids | No error, but the **wrong** user or photo is linked |
+
+> ⚠️ **Warning:** The database checks that a linked row **exists**, not that you picked the **right** one. Passing `user_id = 3` instead of `2` is valid, so double-check your values.
+
+> 🏆 **Golden Rule:** **One `REFERENCES` per link.** Two relationships means two foreign key columns, each pointing at its own table.
