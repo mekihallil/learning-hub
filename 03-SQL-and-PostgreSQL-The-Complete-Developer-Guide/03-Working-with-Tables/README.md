@@ -1094,3 +1094,83 @@ ROLLBACK;
 > ⚠️ **Warning:** The "rows deleted" count (`DELETE 1`) **only counts the parent**. Cascaded deletes don't show up in it, so always check the child table.
 
 > 🏆 **Golden Rule:** **Test your delete rules on throwaway data**, and verify the child table afterwards. The only way to trust a cascade is to watch it happen.
+
+
+
+## ➖ 34. Setting Foreign Keys to Null on Delete
+
+**What it does:** With `ON DELETE SET NULL`, deleting a parent row **keeps the child rows**, but blanks out their link by setting the foreign key to `NULL`.
+**Why it is used:** Sometimes the child data is still valuable even without its parent. A photo can stay on the site after its uploader deletes their account.
+**When to use it:** When child records should **outlive** their parent.
+
+**Analogy:** A book stays on the library shelf after its author's profile is removed. The book remains, but the "written by" field is now blank.
+
+**Rebuild `photos` with `SET NULL`:**
+```sql
+DROP TABLE photos;
+
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200),
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+INSERT INTO photos (url, user_id)
+VALUES ('http://one.jpg', 4), ('http://two.jpg', 1);
+```
+**Output:**
+```
+DROP TABLE
+CREATE TABLE
+INSERT 0 2
+```
+
+**Delete the user who owns `one.jpg`:**
+```sql
+DELETE FROM users WHERE id = 4;
+```
+**Output:**
+```
+DELETE 1
+```
+
+**Check which photos lost their owner:**
+```sql
+SELECT * FROM photos WHERE user_id IS NULL;
+```
+**Output:**
+```
+ id |      url       | user_id
+----+----------------+---------
+  1 | http://one.jpg |
+(1 row)
+```
+The photo **still exists**, but `user_id` is now empty. Photo 2 still points at user 1, untouched.
+
+**The conflict with `NOT NULL`:**
+```sql
+user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL
+```
+This combination can **never work**. Deleting the parent would try to write `NULL` into a column that forbids it, and Postgres blocks the delete with a not-null error.
+
+**Comparing the three main choices:**
+
+| | `RESTRICT` | `CASCADE` | `SET NULL` |
+|---|---|---|---|
+| **Delete a parent with children** | ❌ Blocked | ✅ Allowed | ✅ Allowed |
+| **Child rows** | Stay | **Deleted** | **Stay**, link blanked |
+| **Needs a nullable foreign key?** | No | No | **Yes** |
+| **Risk** | Annoying to clean up | Silent data loss | Orphaned rows to handle |
+| **Good for** | Protecting important data | Dependent data (a photo's comments) | Independent data that outlives its parent |
+
+**Handling orphans in your app:** with `SET NULL` your queries must expect a missing owner:
+```sql
+SELECT url, user_id FROM photos WHERE user_id IS NULL;   -- photos with no owner
+```
+Remember to use `IS NULL`, not `= NULL` (topic 11).
+
+> ⚠️ **Warning:** **`SET NULL` requires the column to allow `NULL`.** Don't combine it with `NOT NULL`.
+
+> ⚠️ **Warning:** Rows with `NULL` foreign keys are easy to forget. Decide how your app should display and clean up "ownerless" rows.
+
+> 🏆 **Golden Rule:** **`SET NULL` means "keep the data, forget the owner."** Use it when the child record is worth keeping on its own.
