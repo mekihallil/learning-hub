@@ -651,3 +651,117 @@ SELECT name FROM cities WHERE UPPER(name) = 'DELHI';
 > ⚠️ **Warning:** Wrapping a column in a function (`UPPER(name) = ...`) can stop Postgres from using an index on that column. That only matters on large tables, but it's worth knowing for later.
 
 > 🏆 **Golden Rule:** **`WHERE` runs before `SELECT`, so it can't see aliases.** Write the calculation out again in the `WHERE`.
+
+
+## ✏️ 18. Updating Rows
+
+**What it does:** `UPDATE` changes the values in **existing** rows. `SET` says what to change, and `WHERE` says which rows to change.
+**Why it is used:** Data changes over time: a population grows, a price drops, a user edits their profile.
+**When to use it:** Any time stored data needs to be corrected or refreshed.
+
+**Analogy:** Using an eraser and pen on one line of a form. `WHERE` is how you point at the correct line so you don't erase the wrong one.
+
+**Update one row:**
+```sql
+UPDATE cities
+SET population = 39505000
+WHERE name = 'Tokyo';
+```
+**Output:**
+```
+UPDATE 1
+```
+`UPDATE 1` means one row was changed. **Check it:**
+```sql
+SELECT name, population FROM cities WHERE name = 'Tokyo';
+```
+**Output:**
+```
+ name  | population
+-------+------------
+ Tokyo |   39505000
+(1 row)
+```
+
+**Update several columns at once (separate with commas):**
+```sql
+UPDATE cities
+SET population = 28225000, area = 2250
+WHERE name = 'Delhi';
+```
+**Output:**
+```
+UPDATE 1
+```
+
+**Update using the current value:**
+```sql
+UPDATE phones
+SET price = price - 20
+WHERE manufacturer = 'Samsung';
+```
+**Output:**
+```
+UPDATE 2
+```
+Two rows matched, so two were changed.
+
+**See what changed with `RETURNING` (a PostgreSQL feature):**
+```sql
+UPDATE cities
+SET population = 39505000
+WHERE name = 'Tokyo'
+RETURNING name, population;
+```
+**Output:**
+```
+ name  | population
+-------+------------
+ Tokyo |   39505000
+(1 row)
+
+UPDATE 1
+```
+
+**The shape of an update:**
+
+| Part | Meaning |
+|---|---|
+| `UPDATE cities` | Which table |
+| `SET population = ...` | Which column gets which new value |
+| `WHERE name = 'Tokyo'` | Which rows to change |
+
+**Try it safely inside a transaction:**
+```sql
+BEGIN;
+
+UPDATE phones SET price = price - 20 WHERE manufacturer = 'Samsung';
+SELECT name, price FROM phones WHERE manufacturer = 'Samsung';
+
+ROLLBACK;
+```
+**Output:**
+```
+BEGIN
+UPDATE 2
+    name     | price
+-------------+-------
+ Galaxy S5   |   279
+ S5620 Monte |   230
+(2 rows)
+
+ROLLBACK
+```
+`ROLLBACK` throws away every change since `BEGIN`, so the table is exactly as it was. Use `COMMIT` instead to make the changes permanent.
+
+**Put your sample data back (so the earlier outputs match):**
+```sql
+UPDATE cities SET population = 38505000 WHERE name = 'Tokyo';
+UPDATE cities SET population = 28125000, area = 2240 WHERE name = 'Delhi';
+```
+
+> ⚠️ **Warning:** **An `UPDATE` without `WHERE` changes EVERY row.** `UPDATE cities SET population = 0;` sets all four cities to 0 and Postgres will not ask "are you sure?".
+
+> ⚠️ **Warning:** Updates are permanent once they finish (outside a transaction). There is no undo button.
+
+> 🏆 **Golden Rule:** **Run a `SELECT` with the same `WHERE` first.** Check that it returns exactly the rows you expect, then change `SELECT ...` to `UPDATE ... SET ...`.
