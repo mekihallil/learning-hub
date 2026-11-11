@@ -150,3 +150,105 @@ No city here is missing its area, so nothing matches.
 > ⚠️ **Warning:** Text values need **single quotes** (`'Delhi'`). Double quotes mean "a column name" (topic 5).
 
 > 🏆 **Golden Rule:** `=` for equal, `<>` for not equal, `BETWEEN` for ranges (ends included), `IS NULL` for missing values.
+
+
+## 🧩 12. Compound Where Clauses
+
+**What it does:** Combines several tests in one `WHERE` using `AND`, `OR`, and `NOT`.
+**Why it is used:** Real questions have more than one condition: "big **and** populous," or "Delhi **or** very large."
+**When to use it:** Any time one test isn't enough.
+
+**Analogy:** `AND` is a nightclub needing **both** a ticket **and** an ID. `OR` is a door that opens for **either** a ticket **or** a VIP pass.
+
+| Keyword | A row is kept when... |
+|---|---|
+| `AND` | **Both** sides are true |
+| `OR` | **At least one** side is true |
+| `NOT` | The test is **false** (it flips the result) |
+
+**AND:**
+```sql
+SELECT name, area, population
+FROM cities
+WHERE area > 4000 AND population > 30000000;
+```
+**Output:**
+```
+ name  | area | population
+-------+------+------------
+ Tokyo | 8223 |   38505000
+(1 row)
+```
+Shanghai has an area over 4000, but its population is under 30 million, so it fails the second test.
+
+**OR:**
+```sql
+SELECT name, area
+FROM cities
+WHERE area > 4000 OR name = 'Delhi';
+```
+**Output:**
+```
+   name   | area
+----------+------
+ Tokyo    | 8223
+ Delhi    | 2240
+ Shanghai | 4015
+(3 rows)
+```
+
+**NOT:**
+```sql
+SELECT name FROM cities WHERE NOT (area > 4000);
+```
+**Output:**
+```
+   name
+-----------
+ Delhi
+ Sao Paulo
+(2 rows)
+```
+
+**Mixing `AND` and `OR` (the tricky part).** `AND` is evaluated **before** `OR`, like multiplication before addition.
+```sql
+-- Without parentheses
+SELECT name FROM cities
+WHERE name = 'Delhi' OR name = 'Tokyo' AND area > 5000;
+```
+Postgres reads this as: `name = 'Delhi'` **OR** (`name = 'Tokyo'` AND `area > 5000`).
+**Output:**
+```
+ name
+-------
+ Tokyo
+ Delhi
+(2 rows)
+```
+
+```sql
+-- With parentheses
+SELECT name FROM cities
+WHERE (name = 'Delhi' OR name = 'Tokyo') AND area > 5000;
+```
+**Output:**
+```
+ name
+-------
+ Tokyo
+(1 row)
+```
+Now both names must also pass `area > 5000`, so Delhi (2240) drops out.
+
+**Each side must be a complete test:**
+```sql
+-- ❌ Wrong
+WHERE area > 4000 AND < 9000
+-- ✅ Right
+WHERE area > 4000 AND area < 9000
+```
+The wrong version gives `ERROR: syntax error at or near "<"`.
+
+> ⚠️ **Warning:** Forgetting that `AND` runs before `OR` is one of the most common SQL bugs. It returns plausible but **wrong** rows with no error.
+
+> 🏆 **Golden Rule:** **When you mix `AND` and `OR`, always add parentheses** to say exactly what you mean, even when you think the default is fine.
