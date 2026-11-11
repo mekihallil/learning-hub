@@ -412,3 +412,75 @@ Equivalent to `WHERE price >= 200 AND price <= 300`.
 > ⚠️ **Warning:** A query that returns `(0 rows)` is **not** an error, so SQL won't warn you. Always sanity-check the result against what you expected.
 
 > 🏆 **Golden Rule:** Read the English word literally. "Fewer than 2,000 **or** more than 350" means **either** can be true, so use `OR`.
+
+
+## 📋 15. Where With Lists
+
+**What it does:** `IN` checks whether a value matches **any item in a list**. `NOT IN` checks that it matches **none** of them.
+**Why it is used:** It replaces long chains of `OR` with one short, readable condition.
+**When to use it:** Any time you're comparing one column against several possible values.
+
+**Analogy:** A guest list at the door. Instead of asking "are you Anna, or Ben, or Carla?", the bouncer just checks "is your name on this list?"
+
+**Using `IN`:**
+```sql
+SELECT name, area
+FROM cities
+WHERE name IN ('Delhi', 'Shanghai');
+```
+**Output:**
+```
+   name   | area
+----------+------
+ Delhi    | 2240
+ Shanghai | 4015
+(2 rows)
+```
+
+**The same query written with `OR`:**
+```sql
+WHERE name = 'Delhi' OR name = 'Shanghai'
+```
+Same result, but longer, and each new value needs another `name =`.
+
+**Using `NOT IN`:**
+```sql
+SELECT name, area
+FROM cities
+WHERE name NOT IN ('Delhi', 'Shanghai');
+```
+**Output:**
+```
+   name    | area
+-----------+------
+ Tokyo     | 8223
+ Sao Paulo | 3043
+(2 rows)
+```
+
+**Works with numbers too (no quotes):**
+```sql
+SELECT name FROM cities WHERE area IN (2240, 3043);
+```
+**Output:**
+```
+   name
+-----------
+ Delhi
+ Sao Paulo
+(2 rows)
+```
+
+**`IN` vs a chain of `OR`:**
+
+| | `IN (a, b, c)` | `x = a OR x = b OR x = c` |
+|---|---|---|
+| **Length** | Short | Grows with every value |
+| **Readability** | ✅ Clear | Easy to make typos |
+| **Mixing with `AND`** | No parentheses needed | Needs parentheses (topic 12) |
+
+> ⚠️ **Warning:** **`NOT IN` with a `NULL` in the list returns nothing.** `WHERE name NOT IN ('Delhi', NULL)` gives `(0 rows)`, because comparing to unknown is never "true." If the list might contain `NULL`, remove it first.
+
+> ⚠️ **Warning:** Every value in the list must match the column's type. Text goes in single quotes, numbers don't.
+
+> 🏆 **Golden Rule:** **More than two `OR` tests on the same column? Switch to `IN`.** It's shorter, clearer, and avoids precedence mistakes.
