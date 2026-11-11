@@ -557,3 +557,97 @@ Task C shows a nice benefit of `IN`: because the "or" is **inside** the list, yo
 > ⚠️ **Warning:** Check the data type. `IN ('199', '399')` with quotes on a number column may fail or behave oddly. Numbers don't get quotes.
 
 > 🏆 **Golden Rule:** `IN` turns "this or this or this" into a single test, and it stays safe to combine with `AND`.
+
+
+## 🧮 17. Calculations in Where Clauses
+
+**What it does:** Lets you do **math and use functions inside `WHERE`**, so you can filter on a value that is calculated rather than stored.
+**Why it is used:** The number you want to filter on often doesn't exist as a column (density, revenue, name length). You compute it in the test.
+**When to use it:** Any time the condition depends on a calculation or a function.
+
+**Analogy:** Instead of asking "which houses have a price tag over $500k?", you ask "which houses cost more than $500 **per square meter**?" You work out each house's number first, then compare.
+
+**Filter on density:**
+```sql
+SELECT name, population / area AS density
+FROM cities
+WHERE population / area > 6000;
+```
+**Output:**
+```
+   name    | density
+-----------+---------
+ Delhi     |   12555
+ Sao Paulo |    6879
+(2 rows)
+```
+Remember the integer-division note from topic 7: these are whole numbers.
+
+**You cannot use the alias in `WHERE`:**
+```sql
+SELECT name, population / area AS density
+FROM cities
+WHERE density > 6000;
+```
+**Output:**
+```
+ERROR:  column "density" does not exist
+LINE 3: WHERE density > 6000;
+```
+**Why:** `WHERE` runs **before** `SELECT` (topic 10), so the alias hasn't been created yet. Repeat the calculation inside `WHERE`, as in the working version above.
+
+**Filter on revenue:**
+```sql
+SELECT name, price * units_sold AS revenue
+FROM phones
+WHERE price * units_sold > 1000000;
+```
+**Output:**
+```
+   name    | revenue
+-----------+---------
+ iPhone 5S | 3764964
+(1 row)
+```
+
+**Filter using a function (topic 9):**
+```sql
+SELECT name FROM cities WHERE LENGTH(name) > 5;
+```
+**Output:**
+```
+   name
+-----------
+ Shanghai
+ Sao Paulo
+(2 rows)
+```
+
+**Case-insensitive match:**
+```sql
+SELECT name FROM cities WHERE UPPER(name) = 'DELHI';
+```
+**Output:**
+```
+ name
+-------
+ Delhi
+(1 row)
+```
+
+**What you can use inside `WHERE`:**
+
+| Kind | Example |
+|---|---|
+| Math | `population / area > 6000` |
+| Math on several columns | `price * units_sold > 1000000` |
+| String functions | `LENGTH(name) > 5`, `UPPER(name) = 'DELHI'` |
+| Combined with `AND`/`OR` | `area * 2 > 5000 AND LENGTH(name) < 6` |
+
+> ⚠️ **Warning:** Aliases created with `AS` don't exist yet when `WHERE` runs. **Repeat the calculation** instead of using the alias.
+
+> ⚠️ **Warning:** Beware of integer division (`7 / 2 = 3`) inside `WHERE`. If you need decimals, cast with `::numeric` (topic 7).
+
+> ⚠️ **Warning:** Wrapping a column in a function (`UPPER(name) = ...`) can stop Postgres from using an index on that column. That only matters on large tables, but it's worth knowing for later.
+
+> 🏆 **Golden Rule:** **`WHERE` runs before `SELECT`, so it can't see aliases.** Write the calculation out again in the `WHERE`.
