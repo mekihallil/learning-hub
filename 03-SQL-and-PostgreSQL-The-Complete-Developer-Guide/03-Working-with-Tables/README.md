@@ -647,3 +647,74 @@ WHERE username = 'monahan93';
 > ⚠️ **Warning:** Result order isn't guaranteed unless you add sorting (`ORDER BY`, later). Don't assume rows come back in id order.
 
 > 🏆 **Golden Rule:** **The foreign key is your bridge.** Match `photos.user_id` against `users.id` and you can travel between the two tables in either direction.
+
+
+
+## 📝 29. Exercise Overview
+
+**What it does:** A short exercise to practice **creating a table with two foreign keys**: a `comments` table that links to both `users` and `photos`.
+**Why it is used:** Reading about foreign keys is easy. Writing one from scratch shows whether you really understand it.
+**When to use it:** After topics 24 to 28. Try each task before reading the solution in topic 30.
+
+**The goal:** every comment records **what was said**, **who said it**, and **which photo it is about**.
+```
+users ──< comments >── photos
+```
+
+**Your tasks:**
+
+**Task 1.** Create a `comments` table with:
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | auto-generated integer | Primary key |
+| `contents` | text up to 240 characters | The comment itself |
+| `user_id` | integer | Foreign key to `users` |
+| `photo_id` | integer | Foreign key to `photos` |
+
+**Expected output:**
+```
+CREATE TABLE
+```
+
+**Task 2.** Insert these four comments, written as (contents, user_id, photo_id):
+
+| contents | user_id | photo_id |
+|---|---|---|
+| Nice shot! | 2 | 1 |
+| Love this | 3 | 1 |
+| Where was this taken? | 4 | 2 |
+| Beautiful | 1 | 5 |
+
+**Expected output:**
+```
+INSERT 0 4
+```
+
+**Task 3.** Print the `contents` of every comment on photo 1.
+
+**Expected output:**
+```
+  contents
+------------
+ Nice shot!
+ Love this
+(2 rows)
+```
+
+**Task 4.** Try to add a comment on photo 999 and read the error.
+
+**Expected output:** an error saying the key is not present in table `photos`.
+
+**Hints:**
+
+| Task | Hint |
+|---|---|
+| 1 | Use the same pattern as `photos.user_id` in topic 27, but twice |
+| 1 | `users` and `photos` must already exist |
+| 2 | List the column names in the `INSERT`, and leave `id` out (topic 26) |
+| 3 | Photo 1's comments are found by filtering on the foreign key |
+
+> ⚠️ **Warning:** Table order matters. `comments` points at both other tables, so it must be created **last**.
+
+> 🏆 **Golden Rule:** A table can have **as many foreign keys as it needs**. Each one is just another `column INTEGER REFERENCES table(id)`.
