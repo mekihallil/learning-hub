@@ -287,3 +287,55 @@ users  (id = PRIMARY KEY)           photos  (user_id = FOREIGN KEY)
 > ⚠️ **Warning:** **Don't use a real-world value as a primary key**, such as a username or an email. People change usernames and emails, and every linked row would then break. Use a meaningless generated number (topic 26).
 
 > 🏆 **Golden Rule:** **Primary key = "who am I?" Foreign key = "who do I belong to?"** The foreign key always stores another table's primary key value.
+
+
+## 🔍 25. Understanding Foreign Keys
+
+**What it does:** Looks closer at how a foreign key behaves: what values it may hold, what it means when several rows share the same one, and what the database checks every time you write to it.
+**Why it is used:** Foreign keys are the glue of your whole design. A solid mental model prevents the most common bugs (broken links, orphaned rows).
+**When to use it:** Before you write `CREATE TABLE` with a foreign key (topic 27).
+
+**Analogy:** A **return address** on a parcel. It must be a real address (a row that exists), many parcels can share the same address, and a parcel with a blank return address is possible but odd.
+
+**What a foreign key can hold:**
+
+| Value in `photos.user_id` | Allowed? | Meaning |
+|---|---|---|
+| `1` (user 1 exists) | ✅ | This photo belongs to user 1 |
+| `1` again, on another photo | ✅ | User 1 owns several photos |
+| `9999` (no such user) | ❌ Error | Link to something that doesn't exist |
+| `NULL` | ✅ (unless forbidden) | This photo has no owner |
+
+**Following a link, step by step:**
+```
+Photo row:  id = 3, url = 'http://25.jpg', user_id = 1
+                                                  │
+                                                  ▼
+User row:   id = 1, username = 'monahan93'
+```
+To find who posted photo 3, take its `user_id` (1) and look up user 1.
+
+**Going the other direction:** to find all photos by user 1, search `photos` for rows where `user_id = 1`:
+```
+photos where user_id = 1  →  rows 2, 3, 4
+```
+
+**The idea behind it: referential integrity.** Postgres **guarantees** that every foreign key either points at a real row or is `NULL`. You never have to wonder whether the link is broken.
+
+**Where it checks, and what it blocks:**
+
+| You try to... | Postgres checks... | Covered in |
+|---|---|---|
+| **Insert** a photo with a made-up `user_id` | Does that user exist? | Topic 31 |
+| **Update** `user_id` to a made-up value | Does that user exist? | Topic 31 |
+| **Delete** a user who still has photos | What should happen to those photos? | Topics 32 to 34 |
+
+**What the database stores:** it saves the foreign key as a **constraint**, a named rule on the table. Postgres names it automatically, like `photos_user_id_fkey` (`table_column_fkey`), and you'll see that name in error messages.
+
+**Two columns, one type:** a foreign key and the key it points to must have **compatible types**. A `SERIAL` primary key is an integer, so the foreign key is `INTEGER`.
+
+> ⚠️ **Warning:** A foreign key links to **one specific table**. `photos.user_id` can only hold ids from `users`, never ids from some other table.
+
+> ⚠️ **Warning:** The foreign key is **not** the user's data. It's only an id. To see the username you must look it up in `users` (topic 28).
+
+> 🏆 **Golden Rule:** **A foreign key is a promise.** It either points at a row that really exists or it's `NULL`, and Postgres enforces that promise on every write.
