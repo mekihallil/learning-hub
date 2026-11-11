@@ -252,3 +252,89 @@ The wrong version gives `ERROR: syntax error at or near "<"`.
 > ⚠️ **Warning:** Forgetting that `AND` runs before `OR` is one of the most common SQL bugs. It returns plausible but **wrong** rows with no error.
 
 > 🏆 **Golden Rule:** **When you mix `AND` and `OR`, always add parentheses** to say exactly what you mean, even when you think the default is fine.
+
+
+## 📝 13. A Where Exercise Overview
+
+**What it does:** Sets up a short **practice exercise** so you can write `WHERE` queries yourself, using the `phones` table.
+**Why it is used:** Reading SQL is easy, writing it is what builds the skill. Trying each question before looking at the answer (topic 14) is how it sticks.
+**When to use it:** After topics 10 to 12, before moving on.
+
+**The table to practice on:**
+```sql
+SELECT * FROM phones;
+```
+**Output:**
+```
+    name     | manufacturer | price | units_sold
+-------------+--------------+-------+------------
+ N1280       | Nokia        |   199 |       1925
+ iPhone 5S   | Apple        |   399 |       9436
+ Galaxy S5   | Samsung      |   299 |       2359
+ S5620 Monte | Samsung      |   250 |       2385
+(4 rows)
+```
+
+**A worked example (not one of the tasks):** print the name of phones that cost more than 300.
+```sql
+SELECT name FROM phones WHERE price > 300;
+```
+**Output:**
+```
+   name
+-----------
+ iPhone 5S
+(1 row)
+```
+
+**A 3-step method for every question:**
+
+| Step | Ask yourself | In the example |
+|---|---|---|
+| 1 | Which **columns** does the answer show? → `SELECT` | `name` |
+| 2 | Which **table**? → `FROM` | `phones` |
+| 3 | Which **rows** qualify? → `WHERE` | `price > 300` |
+
+**Your tasks.** Write one query for each, then compare with the expected output.
+
+**Task 1.** Print the name and manufacturer of all phones made by Samsung.
+**Expected output:**
+```
+    name     | manufacturer
+-------------+--------------
+ Galaxy S5   | Samsung
+ S5620 Monte | Samsung
+(2 rows)
+```
+
+**Task 2.** Print the name and price of phones that sold fewer than 2,000 units **or** cost more than 350.
+**Expected output:**
+```
+   name    | price
+-----------+-------
+ N1280     |   199
+ iPhone 5S |   399
+(2 rows)
+```
+
+**Task 3.** Print the name of phones priced between 200 and 300, including both ends.
+**Expected output:**
+```
+    name
+-------------
+ Galaxy S5
+ S5620 Monte
+(2 rows)
+```
+
+**Hints:**
+
+| Task | Hint |
+|---|---|
+| 1 | Text needs single quotes, and capitalization matters |
+| 2 | Is "or" in English the same as `OR` in SQL here? Check both sides carefully |
+| 3 | Look back at `BETWEEN` in topic 11 |
+
+> ⚠️ **Warning:** Don't peek at topic 14 first. Even a wrong attempt teaches you more than reading the answer.
+
+> 🏆 **Golden Rule:** Break every question into **what to show, where from, and which rows**. It turns any plain-English request into a query.
