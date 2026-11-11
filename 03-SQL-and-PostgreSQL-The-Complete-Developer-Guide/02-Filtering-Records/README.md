@@ -765,3 +765,106 @@ UPDATE cities SET population = 28125000, area = 2240 WHERE name = 'Delhi';
 > ⚠️ **Warning:** Updates are permanent once they finish (outside a transaction). There is no undo button.
 
 > 🏆 **Golden Rule:** **Run a `SELECT` with the same `WHERE` first.** Check that it returns exactly the rows you expect, then change `SELECT ...` to `UPDATE ... SET ...`.
+
+
+## 🗑️ 19. Deleting Rows
+
+**What it does:** `DELETE FROM` removes **rows** from a table. `WHERE` picks which rows go.
+**Why it is used:** Data stops being useful: a user closes their account, a record was entered by mistake, an order is cancelled.
+**When to use it:** Any time rows should be removed but the table itself should stay.
+
+**Analogy:** Tearing specific pages out of a notebook. The notebook (table) remains, and only the pages you pointed at are gone.
+
+**Delete one row:**
+```sql
+DELETE FROM cities
+WHERE name = 'Tokyo';
+```
+**Output:**
+```
+DELETE 1
+```
+
+**Delete every row that matches a test:**
+```sql
+DELETE FROM cities
+WHERE population < 21000000;
+```
+**Output:**
+```
+DELETE 1
+```
+Only Sao Paulo (20,935,000) matched.
+
+**Delete every row (no `WHERE`):**
+```sql
+DELETE FROM cities;
+```
+**Output:**
+```
+DELETE 4
+```
+The table still exists, but it's now empty. You can add rows again with `INSERT` (topic 5).
+
+**See what you deleted with `RETURNING`:**
+```sql
+DELETE FROM cities
+WHERE name = 'Tokyo'
+RETURNING *;
+```
+**Output:**
+```
+ name  | country | population | area
+-------+---------+------------+------
+ Tokyo | Japan   |   38505000 | 8223
+
+DELETE 1
+```
+
+**Three ways to remove things:**
+
+| Command | What it removes | Can use `WHERE`? | The table afterwards |
+|---|---|---|---|
+| `DELETE FROM cities WHERE ...` | **Some or all rows** | ✅ Yes | Still exists |
+| `TRUNCATE cities` | **All rows**, very fast | ❌ No | Still exists (empty) |
+| `DROP TABLE cities` | **The whole table**, structure and data | ❌ No | Gone |
+
+**Try it safely inside a transaction:**
+```sql
+BEGIN;
+
+DELETE FROM cities WHERE population < 21000000;
+SELECT name FROM cities;
+
+ROLLBACK;
+```
+**Output:**
+```
+BEGIN
+DELETE 1
+   name
+----------
+ Tokyo
+ Delhi
+ Shanghai
+(3 rows)
+
+ROLLBACK
+```
+After `ROLLBACK`, Sao Paulo is back.
+
+**If you deleted rows for real, restore them:**
+```sql
+INSERT INTO cities (name, country, population, area)
+VALUES
+  ('Tokyo', 'Japan', 38505000, 8223),
+  ('Sao Paulo', 'Brazil', 20935000, 3043);
+```
+
+> ⚠️ **Warning:** **`DELETE FROM cities;` with no `WHERE` deletes every row**, with no confirmation. It is the same risk as `UPDATE` without `WHERE` (topic 18).
+
+> ⚠️ **Warning:** Deleted rows can't be recovered unless you have a backup or you're still inside a transaction.
+
+> ⚠️ **Warning:** Don't confuse `DELETE` with `DROP TABLE`. `DELETE` removes rows, `DROP TABLE` removes the table itself (topic 3).
+
+> 🏆 **Golden Rule:** **Preview before you delete.** Run `SELECT * FROM table WHERE ...` first, confirm it shows only the rows you want gone, then swap `SELECT *` for `DELETE`.
