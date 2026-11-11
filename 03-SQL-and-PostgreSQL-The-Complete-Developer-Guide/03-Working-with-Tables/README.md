@@ -547,3 +547,103 @@ CONSTRAINT photos_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id)
 > ⚠️ **Warning:** The failed insert above may still have **used up** an id from the counter (topic 26), so the next photo id can skip a number. That's normal.
 
 > 🏆 **Golden Rule:** **`REFERENCES other_table(column)` turns a plain number into a checked link.** Write it on every foreign key so the database protects your data for you.
+
+
+## 🔎 28. Running Queries on Associated Data
+
+**What it does:** Shows how to **read data that is spread across two linked tables**, for example "show me all the photos that belong to this user."
+**Why it is used:** Splitting data into tables keeps it tidy, but you still need to see it together. Linked tables make that possible.
+**When to use it:** Any time the answer needs information from both sides of a relationship.
+
+**Analogy:** A library card catalog points to shelf numbers. You read the card (one table), then walk to that shelf (the other table).
+
+**Question 1: which photos belong to user 4?** The link lives in `photos.user_id`, so a plain `WHERE` is enough:
+```sql
+SELECT * FROM photos WHERE user_id = 4;
+```
+**Output:**
+```
+ id |      url       | user_id
+----+----------------+---------
+  1 | http://one.jpg |       4
+  7 | http://256.jpg |       4
+(2 rows)
+```
+
+**Question 2: which photos belong to the user named `monahan93`?** You only know the **name**, so first find the id:
+```sql
+SELECT id FROM users WHERE username = 'monahan93';
+```
+**Output:**
+```
+ id
+----
+  1
+(1 row)
+```
+Then use that id:
+```sql
+SELECT url FROM photos WHERE user_id = 1;
+```
+**Output:**
+```
+      url
+----------------
+ http://two.jpg
+ http://25.jpg
+ http://36.jpg
+(3 rows)
+```
+This works, but two queries by hand is slow and clumsy.
+
+**Preview: do it in one query with a `JOIN`.** Joins get their own topics later, so here's only the idea:
+```sql
+SELECT url, username
+FROM photos
+JOIN users ON users.id = photos.user_id;
+```
+**Output:**
+```
+      url       | username
+----------------+-----------
+ http://one.jpg | 99stroman
+ http://two.jpg | monahan93
+ http://25.jpg  | monahan93
+ http://36.jpg  | monahan93
+ http://754.jpg | pferrer
+ http://35.jpg  | si93onis
+ http://256.jpg | 99stroman
+(7 rows)
+```
+`JOIN ... ON users.id = photos.user_id` means: "line up each photo with the user whose `id` equals that photo's `user_id`." Row order isn't guaranteed unless you sort.
+
+**Where to filter once linked:**
+```sql
+SELECT url, username
+FROM photos
+JOIN users ON users.id = photos.user_id
+WHERE username = 'monahan93';
+```
+**Output:**
+```
+      url
+----------------+-----------
+ http://two.jpg | monahan93
+ http://25.jpg  | monahan93
+ http://36.jpg  | monahan93
+(3 rows)
+```
+
+**The pattern:**
+
+| Goal | Approach |
+|---|---|
+| You know the **id** | `WHERE foreign_key = id` on the "many" table |
+| You know only a **name** | Look up the id first, or use a `JOIN` |
+| You want data from **both tables** in one result | `JOIN` |
+
+> ⚠️ **Warning:** Both `users` and `photos` have a column called `id`. In a join, an unqualified `id` is ambiguous and gives `ERROR: column reference "id" is ambiguous`. Write `users.id` or `photos.id`.
+
+> ⚠️ **Warning:** Result order isn't guaranteed unless you add sorting (`ORDER BY`, later). Don't assume rows come back in id order.
+
+> 🏆 **Golden Rule:** **The foreign key is your bridge.** Match `photos.user_id` against `users.id` and you can travel between the two tables in either direction.
