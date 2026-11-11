@@ -109,3 +109,59 @@ If monahan93 changes their email, you must fix **every** photo row, and one miss
 > ⚠️ **Warning:** Don't skip the paper stage. Moving a column or splitting a table **after** it holds real data means migrating every row.
 
 > 🏆 **Golden Rule:** **Nouns become tables, properties become columns, and "belongs to" becomes a link between tables.** Store each fact exactly once.
+
+
+## 🔗 22. One-to-Many and Many-to-One Relationships
+
+**What it does:** Describes the most common relationship in databases: **one** record on one side connects to **many** records on the other. "One-to-many" and "many-to-one" are the **same relationship** read from opposite directions.
+**Why it is used:** Most real data is hierarchical. One user posts many photos, one photo gets many comments. Recognizing the pattern tells you exactly where the link must go.
+**When to use it:** Every time you ask "who does this belong to?" during design (topic 21).
+
+**Analogy:** One author, many books. Each book has exactly one author, but an author can have many books.
+
+**Reading it in both directions:**
+
+| Direction | Sentence | Name |
+|---|---|---|
+| User → Photo | One user has **many** photos | **One-to-many** |
+| Photo → User | Many photos belong to **one** user | **Many-to-one** |
+
+**More examples:**
+
+| One side | Many side |
+|---|---|
+| A user | Their photos |
+| A photo | Its comments |
+| A country | Its cities |
+| A company | Its employees |
+| A boat | Its crew members |
+
+**Visualizing it with data:**
+```
+users                       photos
+-----------------           -----------------------------
+ id | username               id | url            | user_id
+----+-----------            ----+----------------+--------
+  1 | monahan93               2 | http://two.jpg |      1
+  4 | 99stroman               3 | http://25.jpg  |      1
+                              4 | http://36.jpg  |      1
+                              1 | http://one.jpg |      4
+```
+User 1 appears on **three** photo rows. Each photo row names **exactly one** user.
+
+**The rule for where the link goes:**
+
+| Rule | Why |
+|---|---|
+| The link column lives on the **"many" side** | Each "many" row can hold exactly one answer to "who is my one?" |
+| It does **not** go on the "one" side | A user would need a column holding a whole **list** of photos, which a single cell can't do cleanly |
+
+**What that looks like:**
+```
+✅  photos.user_id  (each photo stores ONE user id)
+❌  users.photo_ids (each user would need MANY photo ids in one cell)
+```
+
+> ⚠️ **Warning:** Don't try to store "many" inside one cell (like `'1,2,3'`). You can't search, count, or validate it reliably (topic 2).
+
+> 🏆 **Golden Rule:** **The foreign key goes on the "many" side.** Ask "which side has many?" and put the link column there.
