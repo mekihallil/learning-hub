@@ -818,3 +818,98 @@ One comment row connects **three** pieces of information, which is the power of 
 > ⚠️ **Warning:** The database checks that a linked row **exists**, not that you picked the **right** one. Passing `user_id = 3` instead of `2` is valid, so double-check your values.
 
 > 🏆 **Golden Rule:** **One `REFERENCES` per link.** Two relationships means two foreign key columns, each pointing at its own table.
+
+
+## 🚧 31. Foreign Key Constraints Around Insertion
+
+**What it does:** Explains what Postgres **allows and blocks when you insert or update** a row that has a foreign key, including the special case of `NULL`.
+**Why it is used:** Knowing the rules tells you when an insert will fail, and how to **require** a link when you want one.
+**When to use it:** Whenever you write data into a table with foreign keys.
+
+**Analogy:** A bouncer who checks that the person you name as your guest is **actually on the guest list**. A made-up name gets turned away, but leaving the guest line blank is allowed unless the club insists on one.
+
+**Rule 1: a foreign key must point at a row that exists.**
+```sql
+INSERT INTO photos (url, user_id) VALUES ('http://ghost.jpg', 9999);
+```
+**Output:**
+```
+ERROR:  insert or update on table "photos" violates foreign key constraint "photos_user_id_fkey"
+DETAIL:  Key (user_id)=(9999) is not present in table "users".
+```
+
+**Rule 2: the same check applies to `UPDATE`.**
+```sql
+UPDATE photos SET user_id = 9999 WHERE id = 1;
+```
+**Output:**
+```
+ERROR:  insert or update on table "photos" violates foreign key constraint "photos_user_id_fkey"
+DETAIL:  Key (user_id)=(9999) is not present in table "users".
+```
+
+**Rule 3: `NULL` is allowed by default.** It means "no link":
+```sql
+INSERT INTO photos (url, user_id) VALUES ('http://orphan.jpg', NULL);
+```
+**Output:**
+```
+INSERT 0 1
+```
+**Check it:**
+```sql
+SELECT * FROM photos WHERE user_id IS NULL;
+```
+**Output:**
+```
+ id |       url        | user_id
+----+------------------+---------
+  9 | http://orphan.jpg |
+(1 row)
+```
+(psql shows `NULL` as an empty space.) Clean it up:
+```sql
+DELETE FROM photos WHERE url = 'http://orphan.jpg';
+```
+**Output:**
+```
+DELETE 1
+```
+
+**Require a link with `NOT NULL`:** if every photo **must** have an owner, say so:
+```sql
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(200) NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id)
+);
+```
+Now this fails:
+```sql
+INSERT INTO photos (url, user_id) VALUES ('http://orphan.jpg', NULL);
+```
+**Output:**
+```
+ERROR:  null value in column "user_id" of relation "photos" violates not-null constraint
+```
+
+**What each rule does:**
+
+| Rule | Protects against |
+|---|---|
+| `REFERENCES users(id)` | Pointing at a user that doesn't exist |
+| `NOT NULL` | Rows with **no** link at all |
+| Both together | "Every photo must belong to a real user" |
+
+**Order of operations:** to add a child row, the parent must exist **first**:
+```
+1. INSERT the user    ✅
+2. INSERT the photo   ✅  (user_id now points at a real row)
+```
+Reversing the order fails.
+
+> ⚠️ **Warning:** **`NULL` slips past the foreign key check.** `REFERENCES` alone does not force a link to exist. Add `NOT NULL` when the relationship is mandatory.
+
+> ⚠️ **Warning:** You can't add `NOT NULL` to a column that already contains `NULL`s, so fix or delete those rows first.
+
+> 🏆 **Golden Rule:** **`REFERENCES` guarantees a link is valid. `NOT NULL` guarantees a link exists.** Use both when a record must always belong to something.
