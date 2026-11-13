@@ -358,3 +358,86 @@ SELECT * FROM comments;
 > ⚠️ **Warning:** Don't start by guessing. First answer the three recipe questions from topic 38: which tables, which connecting columns, which output columns.
 
 > 🏆 **Golden Rule:** **One `JOIN` per table you bring in.** Three tables means two joins.
+
+
+## ✅ 40. A Joinful Solution
+
+**What it does:** The worked answers to the exercise in topic 39, with an explanation of why each one works.
+**Why it is used:** Comparing your attempt with a clear solution shows where your thinking differed.
+**When to use it:** After you've tried the three tasks.
+
+**Task 1: comment text with the photo URL**
+```sql
+SELECT contents, url
+FROM comments
+JOIN photos ON photos.id = comments.photo_id;
+```
+**Output:**
+```
+       contents        |      url
+-----------------------+----------------
+ Nice shot!            | http://one.jpg
+ Love this             | http://one.jpg
+ Where was this taken? | http://two.jpg
+ Beautiful             | http://754.jpg
+(4 rows)
+```
+The link is `comments.photo_id` → `photos.id`.
+
+**Task 2: comments written by `si93onis`**
+```sql
+SELECT contents
+FROM comments
+JOIN users ON users.id = comments.user_id
+WHERE username = 'si93onis';
+```
+**Output:**
+```
+ contents
+-----------
+ Love this
+(1 row)
+```
+The join brings `username` within reach, so `WHERE` can filter on it.
+
+**Task 3: commenter and photo together (three tables)**
+```sql
+SELECT username, url
+FROM comments
+JOIN users ON users.id = comments.user_id
+JOIN photos ON photos.id = comments.photo_id;
+```
+**Output:**
+```
+ username  |      url
+-----------+----------------
+ pferrer   | http://one.jpg
+ si93onis  | http://one.jpg
+ 99stroman | http://two.jpg
+ monahan93 | http://754.jpg
+(4 rows)
+```
+
+**Why Task 3 works:** `comments` sits in the middle and holds **two** foreign keys.
+```
+        ┌── user_id ──►  users
+comments
+        └── photo_id ─►  photos
+```
+Each `JOIN` adds one table, and each has its own `ON`.
+
+**Sanity check:** there are 4 comments, so each query should return **at most 4 rows**. If you get more or fewer, re-check your `ON`.
+
+**Common mistakes:**
+
+| Mistake | What happens |
+|---|---|
+| Forgetting `ON` in Task 3 | `ERROR: syntax error at or near ";"` |
+| `ON photos.id = comments.user_id` | Valid SQL, **wrong** pairings (topic 37) |
+| Selecting a bare `id` | `ERROR: column reference "id" is ambiguous` |
+| `WHERE username = "si93onis"` | Double quotes read as a column name (topic 5) |
+| `WHERE` before the joins | Syntax error, because `WHERE` must come **after** all joins |
+
+> ⚠️ **Warning:** A wrong join often returns plausible-looking rows with no error. Compare the **row count** and a few values against what you expect.
+
+> 🏆 **Golden Rule:** **Build joins one at a time.** Get the first `JOIN` working and check it, then add the next.
