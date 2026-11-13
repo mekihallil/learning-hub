@@ -539,3 +539,133 @@ HINT:  Perhaps you meant to reference the table alias "p".
 > ⚠️ **Warning:** Avoid `NATURAL JOIN`. It joins on **any columns that happen to share a name**, so adding a column later can silently change your results.
 
 > 🏆 **Golden Rule:** **Write `JOIN ... ON` with short aliases.** The matching condition lives next to the join, where it's easy to see and hard to forget.
+
+
+## 🕳️ 42. Missing Data in Joins
+
+**What it does:** Shows that a plain `JOIN` **silently drops rows that have no match**, and introduces the joins that keep them: `LEFT JOIN`, `RIGHT JOIN`, and `FULL JOIN`.
+**Why it is used:** Sometimes you need **all** photos, even those with no owner, or **all** users, even those with no photos. A plain join would hide them.
+**When to use it:** Whenever "include everything from this table" matters, like reports, audits, or finding orphans.
+
+**Analogy:** A wedding seating chart that **only lists guests who RSVP'd**. Anyone who didn't reply simply isn't on the chart, and nothing tells you they were skipped.
+
+**Step 1: add two rows that have no match.**
+```sql
+INSERT INTO users (username) VALUES ('lonelyuser');
+INSERT INTO photos (url, user_id) VALUES ('http://lost.jpg', NULL);
+```
+**Output:**
+```
+INSERT 0 1
+INSERT 0 1
+```
+`lonelyuser` has **no photos**. `lost.jpg` has **no owner** (`user_id` is `NULL`).
+
+**Step 2: notice the missing row.**
+```sql
+SELECT COUNT(*) FROM photos;
+```
+**Output:**
+```
+ count
+-------
+     8
+(1 row)
+```
+```sql
+SELECT COUNT(*)
+FROM photos
+JOIN users ON users.id = photos.user_id;
+```
+**Output:**
+```
+ count
+-------
+     7
+(1 row)
+```
+8 photos exist, but the join returned only 7. **`lost.jpg` disappeared** and there was no error.
+
+**Fix 1: `LEFT JOIN` keeps every row from the table written first (`photos`):**
+```sql
+SELECT url, username
+FROM photos
+LEFT JOIN users ON users.id = photos.user_id;
+```
+**Output:**
+```
+       url       | username
+-----------------+-----------
+ http://one.jpg  | 99stroman
+ http://two.jpg  | monahan93
+ http://25.jpg   | monahan93
+ http://36.jpg   | monahan93
+ http://754.jpg  | pferrer
+ http://35.jpg   | si93onis
+ http://256.jpg  | 99stroman
+ http://lost.jpg |
+(8 rows)
+```
+`lost.jpg` is back, with an empty (`NULL`) username.
+
+**Fix 2: `RIGHT JOIN` keeps every row from the table written second (`users`):**
+```sql
+SELECT url, username
+FROM photos
+RIGHT JOIN users ON users.id = photos.user_id;
+```
+**Output:**
+```
+      url       |  username
+----------------+------------
+ http://one.jpg | 99stroman
+ http://256.jpg | 99stroman
+ http://two.jpg | monahan93
+ http://25.jpg  | monahan93
+ http://36.jpg  | monahan93
+ http://754.jpg | pferrer
+ http://35.jpg  | si93onis
+                | lonelyuser
+(8 rows)
+```
+`lonelyuser` appears with no URL, and `lost.jpg` (which has no user) is not shown.
+
+**Fix 3: `FULL JOIN` keeps unmatched rows from both sides:**
+```sql
+SELECT url, username
+FROM photos
+FULL JOIN users ON users.id = photos.user_id;
+```
+**Output:**
+```
+       url       |  username
+-----------------+------------
+ http://one.jpg  | 99stroman
+ http://two.jpg  | monahan93
+ http://25.jpg   | monahan93
+ http://36.jpg   | monahan93
+ http://754.jpg  | pferrer
+ http://35.jpg   | si93onis
+ http://256.jpg  | 99stroman
+ http://lost.jpg |
+                 | lonelyuser
+(9 rows)
+```
+Row order may differ on your machine.
+
+**Which rows each join keeps:**
+
+| Join | Matched pairs | Unmatched left rows (`photos`) | Unmatched right rows (`users`) |
+|---|---|---|---|
+| `JOIN` / `INNER JOIN` | ✅ | ❌ | ❌ |
+| `LEFT JOIN` | ✅ | ✅ | ❌ |
+| `RIGHT JOIN` | ✅ | ❌ | ✅ |
+| `FULL JOIN` | ✅ | ✅ | ✅ |
+
+> ⚠️ **Warning:** **A plain `JOIN` never warns you about lost rows.** If a row count looks too small, compare it with `SELECT COUNT(*)` on each table.
+
+> ⚠️ **Warning:** The "empty" cells are really `NULL`. Test for them with `IS NULL`, never `= NULL` (topic 11).
+
+> ⚠️ **Warning:** If your `photos.user_id` was created with `NOT NULL` (topic 35), the second `INSERT` above fails. Rebuild with the script in topic 36.
+
+> 🏆 **Golden Rule:** **If you need every row from a table, a plain `JOIN` is the wrong tool.** Use an outer join (`LEFT`, `RIGHT`, or `FULL`).
