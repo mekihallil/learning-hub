@@ -88,3 +88,112 @@ INSERT 0 4
 > 🏆 **Golden Rule:** **Joins connect tables, aggregations summarize rows.** Learn them separately first, then combine them.
 
 
+## 🔗 37. Joining Data from Different Tables
+
+**What it does:** `JOIN` lines up rows from **two tables** into one result, matching them with a condition you write after `ON`.
+**Why it is used:** A comment row only stores a `user_id` (a number). To see the actual **username**, you must reach into the `users` table.
+**When to use it:** Whenever the data you want to show lives in more than one table.
+
+**Analogy:** A comment has a name tag that says only "user #2." The join walks over to the guest list, finds user #2, and reads out "pferrer."
+
+**Question:** show each comment's text next to the username of the person who wrote it.
+```sql
+SELECT contents, username
+FROM comments
+JOIN users ON users.id = comments.user_id;
+```
+**Output:**
+```
+       contents        | username
+-----------------------+-----------
+ Nice shot!            | pferrer
+ Love this             | si93onis
+ Where was this taken? | 99stroman
+ Beautiful             | monahan93
+(4 rows)
+```
+Row order isn't guaranteed in a join. Yours may differ.
+
+**Reading it:**
+
+| Part | Meaning |
+|---|---|
+| `FROM comments` | Start with the comments table |
+| `JOIN users` | Bring in the users table |
+| `ON users.id = comments.user_id` | Match a comment to the user whose `id` equals the comment's `user_id` |
+| `SELECT contents, username` | Show columns from **either** table |
+
+**How the matching works, for one comment:**
+```
+Comment 1:  contents = 'Nice shot!',  user_id = 2
+
+   Compare 2 with every user id:
+     users.id = 1  →  no
+     users.id = 2  →  YES  ← keep this pairing
+     users.id = 3  →  no
+     users.id = 4  →  no
+
+Result row:  Nice shot!  |  pferrer
+```
+Postgres does this for every row, then returns only the pairings where `ON` was true.
+
+**Same column name in both tables:** `id` exists in `comments` **and** `users`, so Postgres needs to know which one you mean:
+```sql
+SELECT id, contents, username
+FROM comments
+JOIN users ON users.id = comments.user_id;
+```
+**Output:**
+```
+ERROR:  column reference "id" is ambiguous
+LINE 1: SELECT id, contents, username
+```
+Fix it by naming the table:
+```sql
+SELECT comments.id, contents, username
+FROM comments
+JOIN users ON users.id = comments.user_id;
+```
+**Output:**
+```
+ id |       contents        | username
+----+-----------------------+-----------
+  1 | Nice shot!            | pferrer
+  2 | Love this             | si93onis
+  3 | Where was this taken? | 99stroman
+  4 | Beautiful             | monahan93
+(4 rows)
+```
+
+**Table order and side order don't change the matches:**
+```sql
+-- All three return the same pairings
+FROM comments JOIN users ON users.id = comments.user_id
+FROM users JOIN comments ON users.id = comments.user_id
+FROM comments JOIN users ON comments.user_id = users.id
+```
+
+**A wrong `ON` still runs, it just means something else:**
+```sql
+SELECT contents, username
+FROM comments
+JOIN users ON users.id = comments.photo_id;
+```
+**Output:**
+```
+       contents        | username
+-----------------------+-----------
+ Nice shot!            | monahan93
+ Love this             | monahan93
+ Where was this taken? | pferrer
+(3 rows)
+```
+This compares a **photo** id against a **user** id. Postgres sees two integers and is happy, but the answer is nonsense.
+
+> ⚠️ **Warning:** **Postgres checks that your `ON` is valid, not that it makes sense.** Always join a **foreign key** to the **primary key** it points at (topic 24).
+
+> ⚠️ **Warning:** A plain `JOIN` **drops rows that find no partner**. Comments with no matching user would silently vanish (topics 42 and 43).
+
+> ⚠️ **Warning:** Column names that exist in both tables must be prefixed with the table name, like `comments.id`.
+
+> 🏆 **Golden Rule:** **`JOIN other_table ON primary_key = foreign_key`.** Say which tables, say which two columns must be equal, then pick the columns to show.
