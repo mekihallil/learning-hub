@@ -441,3 +441,101 @@ Each `JOIN` adds one table, and each has its own `ON`.
 > ⚠️ **Warning:** A wrong join often returns plausible-looking rows with no error. Compare the **row count** and a few values against what you expect.
 
 > 🏆 **Golden Rule:** **Build joins one at a time.** Get the first `JOIN` working and check it, then add the next.
+
+
+## 🔤 41. Alternate Forms of Syntax
+
+**What it does:** Shows the **different ways to write the same join**: `INNER JOIN`, table aliases, column aliases, and the old comma style.
+**Why it is used:** You'll meet all of these in tutorials and real codebases. Recognizing them means you can read anyone's SQL.
+**When to use it:** Aliases are useful all the time. The old comma style you should only **read**, not write.
+
+**Analogy:** Different dialects of the same language. "Soda," "pop," and "soft drink" all get you the same drink.
+
+**Form 1: the version you've been using**
+```sql
+SELECT url, username
+FROM photos
+JOIN users ON users.id = photos.user_id;
+```
+
+**Form 2: `INNER JOIN` spelled out.** `JOIN` by itself **means** `INNER JOIN`:
+```sql
+SELECT url, username
+FROM photos
+INNER JOIN users ON users.id = photos.user_id;
+```
+
+**Form 3: table aliases.** Give each table a short nickname:
+```sql
+SELECT p.url, u.username
+FROM photos AS p
+JOIN users AS u ON u.id = p.user_id;
+```
+`AS` is optional (`FROM photos p JOIN users u ON ...` works too).
+
+**Form 4: column aliases.** Rename the output columns:
+```sql
+SELECT p.url AS photo, u.username AS owner
+FROM photos AS p
+JOIN users AS u ON u.id = p.user_id;
+```
+**Output:**
+```
+     photo      |   owner
+----------------+-----------
+ http://one.jpg | 99stroman
+ http://two.jpg | monahan93
+ http://25.jpg  | monahan93
+ http://36.jpg  | monahan93
+ http://754.jpg | pferrer
+ http://35.jpg  | si93onis
+ http://256.jpg | 99stroman
+(7 rows)
+```
+All four forms return the same pairs.
+
+**Form 5: the old comma style (read it, don't write it):**
+```sql
+SELECT url, username
+FROM photos, users
+WHERE users.id = photos.user_id;
+```
+Same result, but the matching rule hides in `WHERE`.
+
+**Why that is risky:** forget the `WHERE` and Postgres pairs **every** photo with **every** user:
+```sql
+SELECT url, username FROM photos, users;
+```
+**Output:**
+```
+(28 rows)
+```
+That's 7 photos x 4 users, a **cross join**. On big tables this produces a huge, useless result.
+
+**Once you alias a table, use the alias everywhere:**
+```sql
+SELECT photos.url FROM photos AS p JOIN users AS u ON u.id = p.user_id;
+```
+**Output:**
+```
+ERROR:  invalid reference to FROM-clause entry for table "photos"
+HINT:  Perhaps you meant to reference the table alias "p".
+```
+
+**Comparing the forms:**
+
+| Form | Example | Recommended? |
+|---|---|---|
+| `JOIN ... ON` | `JOIN users ON ...` | ✅ Yes |
+| `INNER JOIN ... ON` | `INNER JOIN users ON ...` | ✅ Yes, more explicit |
+| Table aliases | `FROM photos AS p` | ✅ Yes, shorter queries |
+| Column aliases | `u.username AS owner` | ✅ Yes, clearer output |
+| Comma + `WHERE` | `FROM photos, users WHERE ...` | ❌ Avoid |
+
+**A shortcut you can't use here:** `JOIN ... USING (column)` works only when **both** tables name the connecting column identically. Ours differ (`users.id` and `photos.user_id`), so we use `ON`.
+
+> ⚠️ **Warning:** `AS` for **tables** and `AS` for **columns** look alike but do different jobs. One renames a table inside the query, the other renames a column in the output.
+
+> ⚠️ **Warning:** Avoid `NATURAL JOIN`. It joins on **any columns that happen to share a name**, so adding a column later can silently change your results.
+
+> 🏆 **Golden Rule:** **Write `JOIN ... ON` with short aliases.** The matching condition lives next to the join, where it's easy to see and hard to forget.
