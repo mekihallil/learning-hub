@@ -286,3 +286,75 @@ JOIN <table B> ON <table B>.<primary key> = <table A>.<foreign key>;
 > ⚠️ **Warning:** Row order isn't guaranteed. Don't rely on it unless you add sorting later.
 
 > 🏆 **Golden Rule:** **Every join follows the same recipe: two tables, one matching condition, then your columns.** Only the table and column names change.
+
+
+## 📝 39. Exercise Overview
+
+**What it does:** A practice exercise on `JOIN`, using the photo app, including one query that joins **three tables**.
+**Why it is used:** Joins click when you write them yourself. Trying each task before reading topic 40 is how it sticks.
+**When to use it:** After topics 37 and 38. Attempt all three before reading the solutions.
+
+**Your data (from the reset script in topic 36):**
+```sql
+SELECT * FROM comments;
+```
+**Output:**
+```
+ id |       contents        | user_id | photo_id
+----+-----------------------+---------+----------
+  1 | Nice shot!            |       2 |        1
+  2 | Love this             |       3 |        1
+  3 | Where was this taken? |       4 |        2
+  4 | Beautiful             |       1 |        5
+(4 rows)
+```
+
+**Task 1.** Print the `contents` of each comment and the `url` of the photo it was posted on.
+
+**Expected output:**
+```
+       contents        |      url
+-----------------------+----------------
+ Nice shot!            | http://one.jpg
+ Love this             | http://one.jpg
+ Where was this taken? | http://two.jpg
+ Beautiful             | http://754.jpg
+(4 rows)
+```
+
+**Task 2.** Print the `contents` of every comment written by the user `si93onis`.
+
+**Expected output:**
+```
+ contents
+-----------
+ Love this
+(1 row)
+```
+
+**Task 3 (stretch).** Print the `username` of each commenter and the `url` of the photo they commented on. This needs **three tables** (`comments`, `users`, `photos`).
+
+**Expected output:**
+```
+ username  |      url
+-----------+----------------
+ pferrer   | http://one.jpg
+ si93onis  | http://one.jpg
+ 99stroman | http://two.jpg
+ monahan93 | http://754.jpg
+(4 rows)
+```
+(Row order may differ.)
+
+**Hints:**
+
+| Task | Hint |
+|---|---|
+| 1 | Which column in `comments` points at `photos`? |
+| 2 | Join to find the author, then filter with `WHERE` |
+| 3 | `comments` has **two** foreign keys. Each one needs its own `JOIN ... ON` |
+| All | Use `table.column` for any name that exists in more than one table |
+
+> ⚠️ **Warning:** Don't start by guessing. First answer the three recipe questions from topic 38: which tables, which connecting columns, which output columns.
+
+> 🏆 **Golden Rule:** **One `JOIN` per table you bring in.** Three tables means two joins.
