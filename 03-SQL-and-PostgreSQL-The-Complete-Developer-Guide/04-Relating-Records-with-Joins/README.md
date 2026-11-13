@@ -197,3 +197,92 @@ This compares a **photo** id against a **user** id. Postgres sees two integers a
 > ⚠️ **Warning:** Column names that exist in both tables must be prefixed with the table name, like `comments.id`.
 
 > 🏆 **Golden Rule:** **`JOIN other_table ON primary_key = foreign_key`.** Say which tables, say which two columns must be equal, then pick the columns to show.
+
+
+## ⚡ 38. Another Quick Join
+
+**What it does:** A second worked example of `JOIN`, this time between `photos` and `users`, so the pattern from topic 37 becomes automatic.
+**Why it is used:** One example shows how a join works. A second shows what **stays the same** every time.
+**When to use it:** Whenever you want each photo shown with its owner's details.
+
+**Analogy:** The same card-catalog lookup as before, just on a different shelf.
+
+**Show every photo with its owner:**
+```sql
+SELECT url, username
+FROM photos
+JOIN users ON users.id = photos.user_id;
+```
+**Output:**
+```
+      url       | username
+----------------+-----------
+ http://one.jpg | 99stroman
+ http://two.jpg | monahan93
+ http://25.jpg  | monahan93
+ http://36.jpg  | monahan93
+ http://754.jpg | pferrer
+ http://35.jpg  | si93onis
+ http://256.jpg | 99stroman
+(7 rows)
+```
+
+**Notice the repeats.** `monahan93` appears **three times** and `99stroman` **twice**. Each photo gets its own row, and its owner's name is copied onto it. That is how a one-to-many relationship (topic 22) looks after a join.
+
+**Add a filter with `WHERE` (it runs on the joined rows):**
+```sql
+SELECT url, username
+FROM photos
+JOIN users ON users.id = photos.user_id
+WHERE username = 'monahan93';
+```
+**Output:**
+```
+      url       | username
+----------------+-----------
+ http://two.jpg | monahan93
+ http://25.jpg  | monahan93
+ http://36.jpg  | monahan93
+(3 rows)
+```
+
+**Start from the other table:** same pairs, different starting point:
+```sql
+SELECT username, url
+FROM users
+JOIN photos ON photos.user_id = users.id;
+```
+**Output:**
+```
+ username  |      url
+-----------+----------------
+ 99stroman | http://one.jpg
+ monahan93 | http://two.jpg
+ monahan93 | http://25.jpg
+ monahan93 | http://36.jpg
+ pferrer   | http://754.jpg
+ si93onis  | http://35.jpg
+ 99stroman | http://256.jpg
+(7 rows)
+```
+
+**The three-question recipe for any join:**
+
+| Question | In this example |
+|---|---|
+| 1. Which **two tables** hold the data? | `photos` and `users` |
+| 2. Which **two columns** connect them? | `photos.user_id` and `users.id` |
+| 3. Which **columns** do I want to show? | `url` and `username` |
+
+**The pattern:**
+```sql
+SELECT <columns from either table>
+FROM <table A>
+JOIN <table B> ON <table B>.<primary key> = <table A>.<foreign key>;
+```
+
+> ⚠️ **Warning:** Don't expect one output row per **user**. A join produces one row per **matching pair**, so users with several photos appear several times.
+
+> ⚠️ **Warning:** Row order isn't guaranteed. Don't rely on it unless you add sorting later.
+
+> 🏆 **Golden Rule:** **Every join follows the same recipe: two tables, one matching condition, then your columns.** Only the table and column names change.
