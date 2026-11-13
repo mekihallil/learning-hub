@@ -669,3 +669,121 @@ Row order may differ on your machine.
 > ⚠️ **Warning:** If your `photos.user_id` was created with `NOT NULL` (topic 35), the second `INSERT` above fails. Rebuild with the script in topic 36.
 
 > 🏆 **Golden Rule:** **If you need every row from a table, a plain `JOIN` is the wrong tool.** Use an outer join (`LEFT`, `RIGHT`, or `FULL`).
+
+
+## ❓ 43. Why Wasn't It Included
+
+**What it does:** Explains **why** the plain join dropped `lost.jpg` and `lonelyuser`, and how to use that knowledge to **find** unmatched rows on purpose.
+**Why it is used:** Understanding the rule lets you predict which rows a join will keep, instead of guessing.
+**When to use it:** Whenever a join returns fewer rows than you expected.
+
+**Analogy:** A dance where partners are paired by matching ticket numbers. Someone holding **no ticket**, and someone holding a ticket **nobody else has**, both stay on the sidelines. They aren't wrong, they just have no partner.
+
+**The two missing rows had two different reasons:**
+
+| Row | Why it found no partner |
+|---|---|
+| Photo `lost.jpg` | Its `user_id` is `NULL`. **`NULL` is never equal to anything**, so `ON users.id = photos.user_id` is never true for it |
+| User `lonelyuser` (id 5) | No photo has `user_id = 5`, so nobody points at them |
+
+**`NULL` is never equal, not even to itself:**
+```sql
+SELECT NULL = NULL AS same;
+```
+**Output:**
+```
+ same
+------
+
+(1 row)
+```
+The result is `NULL` (unknown), **not** `true`. The `ON` test needs `true`, so these rows never match.
+
+**How an inner join decides, step by step:**
+```
+1. Take a row from the left table  (photos)
+2. Look for rows in the right table (users) where ON is TRUE
+3. Found one or more?  → output each pairing
+4. Found none?         → INNER JOIN: output nothing
+                         LEFT JOIN:  output the left row with NULLs for the right columns
+```
+
+**Left and right are decided by position in the query:**
+```sql
+FROM photos LEFT JOIN users ON ...   -- photos is LEFT, users is RIGHT
+```
+This is equivalent to swapping the tables **and** the keyword:
+```sql
+FROM users RIGHT JOIN photos ON ...  -- same rows kept
+```
+
+**Use it on purpose: find photos with no owner.**
+```sql
+SELECT url
+FROM photos
+LEFT JOIN users ON users.id = photos.user_id
+WHERE users.id IS NULL;
+```
+**Output:**
+```
+       url
+-----------------
+ http://lost.jpg
+(1 row)
+```
+
+**Find users who have posted nothing:**
+```sql
+SELECT username
+FROM users
+LEFT JOIN photos ON photos.user_id = users.id
+WHERE photos.id IS NULL;
+```
+**Output:**
+```
+  username
+------------
+ lonelyuser
+(1 row)
+```
+The `WHERE ... IS NULL` keeps **only** the rows that found no partner.
+
+**The gotcha: a `WHERE` can quietly turn a `LEFT JOIN` back into an inner join.**
+```sql
+SELECT url, username
+FROM photos
+LEFT JOIN users ON users.id = photos.user_id
+WHERE username <> 'pferrer';
+```
+**Output:**
+```
+      url       | username
+----------------+-----------
+ http://one.jpg | 99stroman
+ http://two.jpg | monahan93
+ http://25.jpg  | monahan93
+ http://36.jpg  | monahan93
+ http://35.jpg  | si93onis
+ http://256.jpg | 99stroman
+(6 rows)
+```
+`lost.jpg` vanished again. For that row `username` is `NULL`, and `NULL <> 'pferrer'` is unknown, not true. To keep it:
+```sql
+WHERE username <> 'pferrer' OR username IS NULL
+```
+**Output:** 7 rows, including `lost.jpg`.
+
+**Troubleshooting checklist:**
+
+| Symptom | Likely cause |
+|---|---|
+| Fewer rows than the table has | Plain `JOIN` dropped unmatched rows |
+| A row you expected is missing | Its foreign key is `NULL`, or no partner exists |
+| `LEFT JOIN` still drops rows | A `WHERE` on a right-table column is filtering out the `NULL`s |
+| Way **more** rows than expected | Missing or wrong `ON`, or a one-to-many repeat (topic 38) |
+
+> ⚠️ **Warning:** **Never compare with `NULL` using `=` or `<>`.** Use `IS NULL` and `IS NOT NULL` (topic 11).
+
+> ⚠️ **Warning:** After a `LEFT JOIN`, be careful filtering on **right-table columns** in `WHERE`. Add `OR column IS NULL`, or move the condition into the `ON` clause.
+
+> 🏆 **Golden Rule:** **A row is "included" only if it finds a partner, or if its table is the one the join promises to keep.** `NULL` never finds a partner, and `LEFT JOIN ... WHERE right.id IS NULL` is the standard way to find the unmatched rows.
